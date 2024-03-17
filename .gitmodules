@@ -7,3 +7,6 @@
 [submodule "thirdparty/picosha2"]
 	path = thirdparty/picosha2
 	url = https://github.com/okdshin/PicoSHA2.git
+[submodule "thirdparty/leveldb"]
+	path = thirdparty/leveldb
+	url = https://github.com/google/leveldb.git

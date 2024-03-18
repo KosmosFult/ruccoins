@@ -37,7 +37,7 @@ namespace ruccoin {
          * @return
          */
         bool Mining();
-        
+
         bool SendBlock();
 
     private:
@@ -60,6 +60,8 @@ namespace ruccoin {
          * @return true如果合法
          */
         bool CheckSignature(const TX& transx);
+
+        void PackBlock();
 
     };
 }

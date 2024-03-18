@@ -11,6 +11,8 @@ using namespace leveldb;
 
 const std::string dbname = "/home/flt/workspace/bitcoin/testdb";
 int main() {
+
+    // RPC 的例子
     // Creating a client that connects to the localhost on port 8080
     rpc::client client("127.0.0.1", 8080);
 
@@ -18,10 +20,13 @@ int main() {
     auto result = client.call("add", 2, 3).as<int>();
     std::cout << "The resultsss is: " << result << std::endl;
 
+
+    // Json的例子
     std::ifstream f("/home/flt/workspace/bitcoin/example/test.json");
     json data = json::parse(f);
     std::cout << data["name"] << std::endl;
 
+    // Leveldb的例子
     Options options;
     ReadOptions roptions;
     options.create_if_missing = true;
@@ -39,5 +44,7 @@ int main() {
     std::cout << getval << std::endl;
     mydb->Get(roptions, "Alice", &getval);    
     std::cout << getval << std::endl;
+
+    delete mydb;
     return 0;
 }

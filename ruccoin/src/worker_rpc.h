@@ -1,0 +1,8 @@
+//
+// Created by flt on 3/18/24.
+//
+
+#ifndef SIMPLEBITCOIN_WORKER_RPC_H
+#define SIMPLEBITCOIN_WORKER_RPC_H
+
+#endif //SIMPLEBITCOIN_WORKER_RPC_H

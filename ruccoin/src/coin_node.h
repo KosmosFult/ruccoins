@@ -7,7 +7,7 @@
 
 #include <string>
 #include "singleton.h"
-#include "tx.h"
+#include "structure.h"
 #include <leveldb/db.h>
 #include <vector>
 #include <rpc/client.h>
@@ -27,10 +27,10 @@ namespace ruccoin {
 
         /**
          * @brief 先检查交易是否合法, 合法就添加到交易池
-         * @param tranx
+         * @param transx
          * @return true:合法且添加成功,false:不合法或添加错误
          */
-        bool AddTransx(const TX& tranx);
+        bool AddTransx(const TX& transx);
 
         /**
          * @brief 将交易池发送给worker node，开始挖矿

@@ -5,7 +5,7 @@
 #ifndef SIMPLEBITCOIN_UTILS_H
 #define SIMPLEBITCOIN_UTILS_H
 
-#include "tx.h"
+#include "structure.h"
 #include <string>
 /**
  * @brief 验证交易的签名

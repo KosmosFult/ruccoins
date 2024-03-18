@@ -7,7 +7,7 @@
 
 #include <string>
 #include <unordered_map>
-#include "tx.h"
+#include "structure.h"
 #include <rpc/client.h>
 
 namespace ruccoin {

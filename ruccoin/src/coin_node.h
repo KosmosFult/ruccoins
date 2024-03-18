@@ -19,11 +19,15 @@ namespace ruccoin {
         CoinNode(const CoinNode&) = delete;
         CoinNode& operator=(const CoinNode&) = delete;
 
+
+        CoinNode();
+
         /**
          * @brief 初始化, 包括打开余额数据库, 建立到worker node的rpc连接等
          * @param dbname
          */
-        CoinNode(const std::string dbname);
+         void Init(const std::string& dbname);
+
 
         /**
          * @brief 先检查交易是否合法, 合法就添加到交易池
@@ -41,7 +45,8 @@ namespace ruccoin {
         bool SendBlock();
 
     private:
-        const std::string dbname_;  // 用户余额数据库目录
+        bool inited_;                // 是否已初始化
+        std::string dbname_;  // 用户余额数据库目录
         leveldb::DB* balances_;     // 余额数据库
         std::vector<TX> tx_pool_;   // 交易池
         rpc::client* worker_;       // worker node的rpc连接

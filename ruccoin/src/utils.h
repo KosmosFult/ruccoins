@@ -24,4 +24,11 @@ bool ValidateSignature(const TX& transx);
 std::string CalSignature(const TX& transx, const std::string& private_key);
 
 
+
+
+
+
+std::string CalSignature(const TX& transx, const std::string& private_key){
+    return "ToBeCompleted";
+}
 #endif //SIMPLEBITCOIN_UTILS_H

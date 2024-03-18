@@ -13,3 +13,6 @@
 
 ## 其他说明
 - `CoinNode`和`WorkerNode` 为单实例类，可以通过 `getInstance` 获取该实例的引用。因此在`xx_rpc.cc`中实现函数时，应当先用`getInstance` 获取类实例，进而可以调用类方法。
+参见client.cc->TestRun
+  - 调用node的`call`方法，进而调用一个名为 `AddTransx` 的函数
+  - 该函数在`coin_rpc.cc`中定义，它先通过 `getInstance()` 静态方法获取CoinNode实例，进而可以使用实例方法。

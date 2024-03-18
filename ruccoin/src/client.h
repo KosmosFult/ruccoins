@@ -17,6 +17,7 @@ namespace ruccoin {
         client();
         ~client();
         void Run();
+        void TestRun();
 
     private:
         std::unordered_map<std::string, std::string> pri2pub_;  // 私钥到公钥映射
@@ -25,8 +26,9 @@ namespace ruccoin {
         /**
          * @brief 根据交易公钥检索私钥，计算签名，并直接更新到该交易的签名
          * @param transx 待签名的交易
+         * @return true 如果成果
          */
-        void Signate(TX& transx);
+        bool Signate(TX& transx);
 
         /**
          * @brief 将交易发送给所有coin_node
@@ -39,7 +41,7 @@ namespace ruccoin {
          * @param addr
          * @param port
          */
-        void ConnectNode(const std::string& addr, const std::string& port);
+        void ConnectNode(const std::string& addr, uint32_t port);
     };
 }
 

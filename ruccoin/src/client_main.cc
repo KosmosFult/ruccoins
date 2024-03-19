@@ -7,6 +7,6 @@
 
 int main(){
     ruccoin::client client;
-    client.Run();
+    // client.Run();
     return 0;
 }

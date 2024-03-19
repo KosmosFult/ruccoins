@@ -1,0 +1,7 @@
+{
+  "node_addr": [
+    "127.0.0.1:8090",
+    "127.0.0.1:8092"
+  ],
+  "client_db": "/home/flt/workspace/bitcoin/clientDB"
+}

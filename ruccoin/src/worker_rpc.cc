@@ -14,5 +14,6 @@ void BindAll(rpc::server& server){
 std::string DoMining(BlockHeader bh){
     auto& worker = ruccoin::WorkerNode::getInstance();
     auto nonce = worker.DoMining(bh);
+
     return nonce;
 }

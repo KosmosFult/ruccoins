@@ -28,7 +28,7 @@ namespace ruccoin {
          * @brief 初始化, 包括打开余额数据库, 建立到worker node的rpc连接等
          * @param dbname
          */
-        void Init(const std::string &dbname);
+        void Init(const std::string &dbname, uint32_t prot);
 
 
         /**
@@ -49,6 +49,8 @@ namespace ruccoin {
 
     private:
         std::string addr_;    // 节点自己的地址
+        uint32_t port_;
+        uint32_t worker_port_;
         bool inited_;                // 是否已初始化
         std::string dbname_;  // 用户余额数据库目录
         leveldb::DB *balances_;     // 余额数据库
@@ -59,6 +61,8 @@ namespace ruccoin {
         Block on_packing_block_;   // 正在打包的区块
         std::future<clmdep_msgpack::object_handle> future;  // 用于存储异步调用的对象
         std::string block_chain_;  // 存储block chain的json文件
+
+        std::string HeaderHash(const BlockHeader& bh);
 
         /**
          * @brief 判断用户余额是否足够
@@ -98,6 +102,9 @@ namespace ruccoin {
          * @return
          */
         bool SendBlock(const Block &block);
+
+
+        bool AddBlock(Block block);
 
 
         /**

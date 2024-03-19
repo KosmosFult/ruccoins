@@ -16,8 +16,10 @@ ruccoin::CoinNode::CoinNode() : inited_(false) {
 
 }
 
-void ruccoin::CoinNode::Init(const std::string &dbname) {
+void ruccoin::CoinNode::Init(const std::string &dbname, uint32_t port) {
     dbname_ = dbname;
+    port_ = port;
+    worker_port_ = port + 1;
     // Open config
     std::fstream f(config_path);
     if (!f.is_open()) {
@@ -38,13 +40,15 @@ void ruccoin::CoinNode::Init(const std::string &dbname) {
 }
 
 bool ruccoin::CoinNode::AddTransx(const TX &transx) {
+    if (!CheckBalance(transx.from, transx.value))
+        return false;
     if (!CheckSignature(transx))
         return false;
     tx_pool_.push_back(transx);
 
-    if(MiningCond()){
+    if (MiningCond()) {
         PackBlock();
-
+        Mining();
     }
     return true;
 }
@@ -55,7 +59,13 @@ bool ruccoin::CoinNode::MiningCond() {
 }
 
 bool ruccoin::CoinNode::Mining() {
-
+    worker_ = new rpc::client("127.0.0.1", worker_port_);
+    std::string nonce = worker_->call("DoMining", on_packing_block_.header).as<std::string>();
+    on_packing_block_.header.nonce = nonce;
+    std::string header_hash = HeaderHash(on_packing_block_.header);
+    on_packing_block_.header.hash = header_hash;
+    std::cout << "Mining complete!" << std::endl;
+    delete worker_;
 }
 
 
@@ -76,6 +86,17 @@ void ruccoin::CoinNode::PackBlock() {
     on_packing_block_.transx_list = tx_pool_;
 }
 
-bool ruccoin::CoinNode::CheckBalance(const std::string &from, double value){
+bool ruccoin::CoinNode::CheckBalance(const std::string &from, double value) {
     return true;
+}
+
+bool ruccoin::CoinNode::CheckSignature(const TX &transx) {
+    return ValidateSignature(transx);
+}
+
+std::string ruccoin::CoinNode::HeaderHash(const BlockHeader &bh) {
+    std::string hdata =
+            std::to_string(bh.height) + std::to_string(bh.target) +
+            bh.prev_hash + bh.merkle_root + bh.nonce;
+    return RuccoinHash(hdata);
 }

@@ -4,3 +4,6 @@ testdb
 .idea
 cmake-build-debug
 test_prog.cc
+clientDB
+*_db
+user_keys.txt

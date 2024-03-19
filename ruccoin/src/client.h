@@ -26,6 +26,7 @@ namespace ruccoin {
          */
         void Run();
         void TestRun();
+        void GenUser(int n);
 
     private:
         // std::unordered_map<std::string, std::string> pri2pub_;  // 私钥到公钥映射(使用leveldb, 因此已弃用)

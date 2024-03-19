@@ -9,11 +9,11 @@ int main(int argc, char** argv) {
     int port = atoi(argv[1]);
     std::string dbname = "./coin_" + std::to_string(port) + "_db";
     auto& cnode = ruccoin::CoinNode::getInstance();
-    cnode.Init(dbname);
+    cnode.Init(dbname, port);
 
     rpc::server coin_server(port);
     BindAll(coin_server);
     coin_server.run();
-//    coin_server.async_run(2);
+//    coin_server.async_run(3);
     return 0;
 }

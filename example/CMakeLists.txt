@@ -8,10 +8,10 @@ include_directories(../thirdparty/json/include)
 include_directories(../thirdparty/leveldb/include)
 
 
-add_executable(client client.cc)
-add_executable(server server.cc)
-target_link_libraries(client rpc nlohmann_json leveldb)
-target_link_libraries(server rpc nlohmann_json)
+add_executable(client_example client.cc)
+add_executable(server_example server.cc)
+target_link_libraries(client_example rpc nlohmann_json leveldb)
+target_link_libraries(server_example rpc nlohmann_json)
 
 
 

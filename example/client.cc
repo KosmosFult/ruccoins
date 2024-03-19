@@ -5,11 +5,21 @@
 #include <leveldb/db.h>
 #include <string>
 #include <openssl/ecdsa.h>
+#include <vector>
 using json = nlohmann::json;
 
 using namespace leveldb;
 
 const std::string dbname = "/home/flt/workspace/bitcoin/testdb";
+
+std::future<clmdep_msgpack::object_handle> future;
+
+void call_sleep(rpc::client& client)
+{
+    future = client.async_call("my_sleep");
+}
+
+
 int main() {
 
     // RPC 的例子
@@ -20,11 +30,19 @@ int main() {
     auto result = client.call("add", 2, 3).as<int>();
     std::cout << "The resultsss is: " << result << std::endl;
 
+    call_sleep(client);
+    std::cout << "flag" << std::endl;
+    int res = future.get().as<int>();
+    std::cout << res << std::endl;
 
     // Json的例子
     std::ifstream f("/home/flt/workspace/bitcoin/example/test.json");
     json data = json::parse(f);
     std::cout << data["name"] << std::endl;
+
+    std::vector<std::string> addrs = data["node_addr"];
+    for(auto addr : addrs)
+        std::cout << addr << std::endl;
 
     // Leveldb的例子
     Options options;

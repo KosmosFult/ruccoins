@@ -5,7 +5,12 @@
 #include "client.h"
 #include "utils.h"
 #include <iostream>
+#include <fstream>
 #include <chrono>
+#include <nlohmann/json.hpp>
+
+using json = nlohmann::json;
+const std::string config_path = "/home/flt/workspace/bitcoin/ruccoin/config.json";
 
 void ruccoin::client::ConnectNode(const std::string& addr, uint32_t port){
     auto new_node = new rpc::client(addr, port);
@@ -38,4 +43,36 @@ bool ruccoin::client::Signate(TX &transx) {
     std::string signature = CalSignature(transx, find_itr->second);
     transx.signature = signature;
     return true;
+}
+
+ruccoin::client::client() {
+    std::fstream conf(config_path);
+    if(!conf.is_open()){
+        std::cerr << "Can not open: \"" << config_path << "\"" << std::endl;
+    }
+    json conf_json = json::parse(conf);
+    nodes_addr_ = conf_json["node_addr"];
+
+    for(auto &addr : nodes_addr_){
+        auto flag = addr.find(':');
+
+        std::string node_ip = addr.substr(0, flag);
+        int node_port = atoi(addr.substr(flag+1, addr.length()-flag).data());
+
+        ConnectNode(node_ip, node_port);
+    }
+
+}
+
+ruccoin::client::~client() {
+    for(auto &i : coin_nodes_)
+        delete i;
+}
+
+void ruccoin::client::SendTransx(const TX &transx) {
+    assert(!transx.signature.empty());
+
+    for(auto& node : coin_nodes_){
+        node->call("AddTransx", transx);
+    }
 }

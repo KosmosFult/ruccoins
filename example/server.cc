@@ -1,8 +1,14 @@
 #include <iostream>
 #include "rpc/server.h"
+#include <unistd.h>
 
 void foo() {
     std::cout << "foo was called!" << std::endl;
+}
+
+int my_sleep(){
+    sleep(10);
+    return 6;
 }
 
 int main(int argc, char *argv[]) {
@@ -17,6 +23,8 @@ int main(int argc, char *argv[]) {
     srv.bind("add", [](int a, int b) {
         return a + b;
     });
+
+    srv.bind("my_sleep", &my_sleep);
 
     // Run the server loop.
     srv.run();

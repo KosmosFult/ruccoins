@@ -3,3 +3,6 @@
 //
 
 #include "worker_node.h"
+#include <nlohmann/json.hpp>
+
+using json = nlohmann::json;

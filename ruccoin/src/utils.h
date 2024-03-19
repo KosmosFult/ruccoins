@@ -15,6 +15,13 @@ std::string RuccoinHash(std::string& data){
     return hash_hex_str;
 }
 
+/**
+ * @brief 生成私钥和地址
+ * @return std::pair，第一个字符串是私钥，第二个是地址
+ */
+std::pair<std::string, std::string> GenAddr(){
+    return std::make_pair("private key", "addr");
+}
 
 /**
  * @brief 验证交易的签名

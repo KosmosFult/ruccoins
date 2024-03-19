@@ -7,6 +7,15 @@
 
 #include "structure.h"
 #include <string>
+#include "picosha2.h"
+
+std::string RuccoinHash(std::string& data){
+    std::string hash_hex_str;
+    picosha2::hash256_hex_string(data, hash_hex_str);
+    return hash_hex_str;
+}
+
+
 /**
  * @brief 验证交易的签名
  * @param transx

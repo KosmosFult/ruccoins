@@ -3,3 +3,4 @@
 testdb
 .idea
 cmake-build-debug
+test_prog.cc

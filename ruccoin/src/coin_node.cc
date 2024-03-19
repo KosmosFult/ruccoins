@@ -49,5 +49,10 @@ bool ruccoin::CoinNode::MiningCond() {
 
 void ruccoin::CoinNode::PackBlock() {
     assert(MiningCond());
+    Block new_block;
+    new_block.header = {
+            current_block_.header.height+1,
+            current_block_.header.hash,
 
+    };
 }

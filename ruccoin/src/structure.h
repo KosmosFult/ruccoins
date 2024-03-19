@@ -23,12 +23,13 @@ using TXL = std::vector<TX>;
 
 struct BlockHeader {
     uint64_t height;
+    uint64_t target;      // 难度
     std::string prev_hash;
     std::string hash;
     std::string merkle_root;
     std::string nonce;
 
-    MSGPACK_DEFINE_ARRAY(height, prev_hash, hash, merkle_root, nonce);
+    MSGPACK_DEFINE_ARRAY(height, target, prev_hash, hash, merkle_root, nonce);
 };
 
 struct Block {

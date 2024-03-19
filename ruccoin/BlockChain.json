@@ -2,6 +2,7 @@
   {
     "header": {
       "height": 1,
+      "target": 2378178319,
       "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
       "hash": "0000000000abcdef0000000000abcdef0000000000abcdef0000000000abcdef",
       "merkle_root": "abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdef",
@@ -27,6 +28,7 @@
   {
     "header": {
       "height": 2,
+      "target": 2378178319,
       "prev_hash": "0000000000abcdef0000000000abcdef0000000000abcdef0000000000abcdef",
       "hash": "0000000000abcdef0000000000abcdef0000000000abcdef0000000000abcdef",
       "merkle_root": "abcdefabcdef000000000000000000000000000000000000000000000000000000",

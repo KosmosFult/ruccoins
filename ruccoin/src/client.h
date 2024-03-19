@@ -60,6 +60,10 @@ namespace ruccoin {
          * @param port
          */
         void ConnectNode(const std::string& addr, uint32_t port);
+
+        void ConnectAllNodes();
+
+        void CloseAllNodes();
     };
 }
 

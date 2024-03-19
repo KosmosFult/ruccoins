@@ -7,6 +7,7 @@
 
 #include "singleton.h"
 #include <rpc/client.h>
+#include "structure.h"
 
 namespace ruccoin {
     class WorkerNode : public PublicSingleton<WorkerNode> {
@@ -16,11 +17,15 @@ namespace ruccoin {
         WorkerNode(const WorkerNode &) = delete;
 
         WorkerNode &operator=(const WorkerNode &) = delete;
+
         WorkerNode();
-        void Init();
+        void Init(uint32_t port);
+        void Run();
+        std::string DoMining(const BlockHeader& bh);
     private:
         bool inited_;
-        std::string addr_;
+        uint32_t my_port_;
+        uint32_t coin_node_port_;
         rpc::client* coin_node_;  // 自己的coin node
 
     };

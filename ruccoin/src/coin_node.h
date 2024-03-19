@@ -38,11 +38,7 @@ namespace ruccoin {
          */
         bool AddTransx(const TX &transx);
 
-        /**
-         * @brief 将交易池发送给worker node，开始挖矿，将异步调用的future对象保存到成员。
-         * @return
-         */
-        bool Mining();
+
 
         /**
          * @brief 被挖矿程序调用以通知结果。函数中使用Mining时异步调用对象的get()获取nonce
@@ -56,10 +52,11 @@ namespace ruccoin {
         bool inited_;                // 是否已初始化
         std::string dbname_;  // 用户余额数据库目录
         leveldb::DB *balances_;     // 余额数据库
-        std::vector<TX> tx_pool_;   // 交易池
+        TXL tx_pool_;   // 交易池
         rpc::client *worker_;       // worker node的rpc连接
         std::vector<std::string> node_addr;  // 其余比特币节点的地址
-        Block current_block_;
+        Block current_block_;      // 区块链上最新区块
+        Block on_packing_block_;   // 正在打包的区块
         std::future<clmdep_msgpack::object_handle> future;  // 用于存储异步调用的对象
         std::string block_chain_;  // 存储block chain的json文件
 
@@ -90,11 +87,24 @@ namespace ruccoin {
         void PackBlock();
 
         /**
+         * @brief 将交易池发送给worker node，开始挖矿，将异步调用的future对象保存到成员。
+         * @return
+         */
+        bool Mining();
+
+        /**
          * @brief 向其它节点发送区块
          * @param block
          * @return
          */
         bool SendBlock(const Block &block);
+
+
+        /**
+         * @brief 获取当前merkle_root
+         * @return
+         */
+        std::string GetMerkle();
 
     };
 }

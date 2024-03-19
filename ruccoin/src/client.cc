@@ -56,16 +56,6 @@ ruccoin::client::client() {
     nodes_addr_ = conf_json["node_addr"];
     dbname_ = conf_json["client_db"];
 
-    // 连接所有coin node
-    for(auto &addr : nodes_addr_){
-        auto flag = addr.find(':');
-
-        std::string node_ip = addr.substr(0, flag);
-        int node_port = atoi(addr.substr(flag+1, addr.length()-flag).data());
-
-        ConnectNode(node_ip, node_port);
-    }
-
     // 打开DB
     leveldb::Options options;
     options.create_if_missing = true;
@@ -91,4 +81,17 @@ std::string ruccoin::client::GetPrivateKey(const std::string &addr) {
     std::string priv_key;
     addr2priv_->Get(leveldb::ReadOptions(), addr, &priv_key);
     return priv_key;
+}
+
+void ruccoin::client::ConnectAllNodes() {
+    // 连接所有coin node
+    for(auto &addr : nodes_addr_){
+        auto flag = addr.find(':');
+
+        std::string node_ip = addr.substr(0, flag);
+        int node_port = atoi(addr.substr(flag+1, addr.length()-flag).data());
+
+        ConnectNode(node_ip, node_port);
+    }
+
 }

@@ -27,4 +27,4 @@ target_link_libraries(worker_node rpc)
 
 add_executable(test_prog ./src/test_prog.cc
         src/utils.cc)
-target_link_libraries(test_prog ${OPENSSL_LIBRARIES})
+target_link_libraries(test_prog ${OPENSSL_LIBRARIES} nlohmann_json)

@@ -21,6 +21,7 @@ int main(int argc, char** argv) {
         if (cnode.MiningCond()) {
             cnode.PackBlock();
             cnode.Mining();
+            cnode.SendBlock();
         }
     }
     return 0;

@@ -110,6 +110,8 @@ void ruccoin::client::GenUser(int n) {
         std::cerr << "Can not open: \"" << config_path << "\"" << std::endl;
     }
 
+
+    std::string priv_key, user_addr;
     // 将两个固定的特殊节点地址添加进去
     json conf_json = json::parse(conf);
     for(auto& addr : nodes_addr_){
@@ -123,6 +125,12 @@ void ruccoin::client::GenUser(int n) {
         key_file << line << std::endl;
     }
 
+    // 将奖励源添加
+    priv_key = conf_json["reward_user"]["priv_key"];
+    user_addr = conf_json["reward_user"]["addr"];
+    addr2priv_->Put(leveldb::WriteOptions(), user_addr , priv_key);
+    std::string line = priv_key + "," + user_addr + "," + "888888888";
+    key_file << line << std::endl;
 
     for (int i = 0; i < n; i++) {
         auto key_pair = GenAddr();

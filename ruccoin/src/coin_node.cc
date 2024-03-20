@@ -11,6 +11,36 @@
 
 using json = nlohmann::json;
 
+void to_json(json& j, const BlockHeader& header) {
+    j = json{
+            {"height", header.height},
+            {"target", header.target},
+            {"prev_hash", header.prev_hash},
+            {"hash", header.hash},
+            {"merkle_root", header.merkle_root},
+            {"nonce", header.nonce}
+    };
+}
+
+void to_json(json& j, const TX& tx) {
+    j = json{
+            {"time_stamp", tx.time_stamp},
+            {"from", tx.from},
+            {"to", tx.to},
+            {"value", tx.value},
+            {"signature", tx.signature}
+    };
+}
+
+
+void to_json(json& j, const Block& block) {
+    j = json{
+            {"header", block.header},
+            {"transx_list", block.transx_list}
+    };
+}
+
+
 ruccoin::CoinNode::CoinNode() : inited_(false) {
 
 }
@@ -33,6 +63,7 @@ void ruccoin::CoinNode::Init(uint32_t port) {
             node_addr.push_back(addr);
     }
 
+
     // 初始化自己的私钥和地址
     user_addr_ = conf_json[std::to_string(port)]["addr"];
     priv_key_ = conf_json[std::to_string(port)]["priv_key"];
@@ -40,6 +71,10 @@ void ruccoin::CoinNode::Init(uint32_t port) {
               << std::endl;
 
     std::string test_env_path = conf_json["test_env_path"];
+
+    // 区块链文件
+    block_chain_json_ = test_env_path + "/coin_" + std::to_string(port_) + "_blockchain.json";
+    ReadBlockChain();
 
     // Open database
     dbname_ = test_env_path + "/coin_" + std::to_string(port_) + "_db";
@@ -93,9 +128,9 @@ std::string ruccoin::CoinNode::GetMerkle() {
 void ruccoin::CoinNode::PackBlock() {
     assert(MiningCond());
     on_packing_block_.header = {
-            current_block_.header.height + 1,
+            block_chain_.back().header.height + 1,
             ruccoin::target,
-            current_block_.header.hash,
+            block_chain_.back().header.hash,
             GenRandom256(),
             GetMerkle(),
             "nonce"
@@ -103,12 +138,12 @@ void ruccoin::CoinNode::PackBlock() {
     on_packing_block_.transx_list = tx_pool_;
     TX reward_tx = {
             GetTimestamp(),
-            ruccoin::reward_addr,
+            ruccoin::reward_src_addr,
             user_addr_,
             ruccoin::reward_coin,
             ""
     };
-    auto sign = CalSignature(reward_tx, priv_key_);
+    auto sign = CalSignature(reward_tx, ruccoin::reward_src_priv_key);
     reward_tx.signature = sign;
     assert(ValidateSignature(reward_tx));
     on_packing_block_.transx_list.push_back(reward_tx);
@@ -178,4 +213,65 @@ void ruccoin::CoinNode::ReadUserData(const std::string &file_name) {
 ruccoin::CoinNode::~CoinNode() {
     delete worker_;
     delete balances_;
+    WriteBlockChain();
+}
+
+void ruccoin::CoinNode::ReadBlockChain() {
+    assert(!block_chain_json_.empty());
+    std::ifstream bc(block_chain_json_);
+    if(!bc.is_open()){
+        std::cerr << block_chain_json_ << " not exists\n" << std::endl;
+        return;
+    }
+
+    json bc_josn = json::parse(bc);
+
+    for(auto& block: bc_josn){
+        // Parse block header
+        BlockHeader header;
+        header.height = block["header"]["height"];
+        header.target = block["header"]["target"];
+        header.prev_hash = block["header"]["prev_hash"];
+        header.hash = block["header"]["hash"];
+        header.merkle_root = block["header"]["merkle_root"];
+        header.nonce = block["header"]["nonce"];
+
+        // Parse transactions
+        TXL transx_list;
+        for (const auto& txData : block["transx_list"]) {
+            TX tx;
+            tx.time_stamp = txData["time_stamp"];
+            tx.from = txData["from"];
+            tx.to = txData["to"];
+            tx.value = txData["value"];
+            tx.signature = txData["signature"];
+            transx_list.push_back(tx);
+        }
+
+        // Create block and add it to blockchain
+        Block cb;
+        cb.header = header;
+        cb.transx_list = transx_list;
+        block_chain_.push_back(cb);
+    }
+    bc.close();
+
+    std::cout << "Block chain loading\n" << std::endl;
+}
+
+void ruccoin::CoinNode::WriteBlockChain() {
+    std::ofstream json_file(block_chain_json_+".tmp");
+    json jl = json::array();
+    for(auto& block: block_chain_){
+        json jb = block;
+        jl.push_back(jb);
+    }
+    json_file << std::setw(2) << jl << std::endl;
+    json_file.close();
+    std::cout << "Block chain writing\n" <<std::endl;
+}
+
+bool ruccoin::CoinNode::SendBlock() {
+    WriteBlockChain();
+    return true;
 }

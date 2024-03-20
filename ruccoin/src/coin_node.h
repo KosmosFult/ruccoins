@@ -56,6 +56,13 @@ namespace ruccoin {
          */
         bool MiningCond();
 
+        /**
+         * @brief 先将区块持久化，向其它节点发送区块
+         * @param block
+         * @return
+         */
+        bool SendBlock();
+
 
 
         /**
@@ -77,10 +84,11 @@ namespace ruccoin {
         TXL tx_pool_;   // 交易池
         rpc::client *worker_;       // worker node的rpc连接
         std::vector<std::string> node_addr;  // 其余比特币节点的地址
-        Block current_block_;      // 区块链上最新区块
+//        Block current_block_;      // 区块链上最新区块
         Block on_packing_block_;   // 正在打包的区块
         std::future<clmdep_msgpack::object_handle> future;  // 用于存储异步调用的对象
-        std::string block_chain_;  // 存储block chain的json文件
+        std::string block_chain_json_;  // 存储block chain的json文件
+        std::vector<Block> block_chain_;
 
         static std::string HeaderHash(const BlockHeader& bh);
 
@@ -100,12 +108,7 @@ namespace ruccoin {
          */
         static bool CheckSignature(const TX &transx);
 
-        /**
-         * @brief 向其它节点发送区块
-         * @param block
-         * @return
-         */
-        bool SendBlock(const Block &block);
+
 
 
         bool AddBlock(Block block);
@@ -120,6 +123,10 @@ namespace ruccoin {
         static std::pair<std::string, uint32_t> ParseAddr(const std::string& addr);
 
         void ReadUserData(const std::string& file_name);
+
+        void ReadBlockChain();
+
+        void WriteBlockChain();
 
     };
 }

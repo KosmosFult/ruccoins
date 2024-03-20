@@ -1,53 +1,53 @@
 [
   {
     "header": {
-      "height": 1,
-      "target": 2378178319,
-      "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
       "hash": "0000000000abcdef0000000000abcdef0000000000abcdef0000000000abcdef",
+      "height": 1,
       "merkle_root": "abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdef",
-      "nonce": "1234567890abcdef"
+      "nonce": "1234567890abcdef",
+      "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "target": 2378178319
     },
     "transx_list": [
       {
-        "time_stamp": 1630982400,
         "from": "sender1_address",
+        "signature": "signature1",
+        "time_stamp": 1630982400,
         "to": "receiver1_address",
-        "value": 10.5,
-        "signature": "signature1"
+        "value": 10.5
       },
       {
-        "time_stamp": 1630982450,
         "from": "sender2_address",
+        "signature": "signature2",
+        "time_stamp": 1630982450,
         "to": "receiver2_address",
-        "value": 5.2,
-        "signature": "signature2"
+        "value": 5.2
       }
     ]
   },
   {
     "header": {
-      "height": 2,
-      "target": 2378178319,
-      "prev_hash": "0000000000abcdef0000000000abcdef0000000000abcdef0000000000abcdef",
       "hash": "0000000000abcdef0000000000abcdef0000000000abcdef0000000000abcdef",
+      "height": 2,
       "merkle_root": "abcdefabcdef000000000000000000000000000000000000000000000000000000",
-      "nonce": "abcdef1234567890"
+      "nonce": "abcdef1234567890",
+      "prev_hash": "0000000000abcdef0000000000abcdef0000000000abcdef0000000000abcdef",
+      "target": 2378178319
     },
     "transx_list": [
       {
-        "time_stamp": 1630982500,
         "from": "sender3_address",
+        "signature": "signature3",
+        "time_stamp": 1630982500,
         "to": "receiver3_address",
-        "value": 7.3,
-        "signature": "signature3"
+        "value": 7.3
       },
       {
-        "time_stamp": 1630982550,
         "from": "sender4_address",
+        "signature": "signature4",
+        "time_stamp": 1630982550,
         "to": "receiver4_address",
-        "value": 3.8,
-        "signature": "signature4"
+        "value": 3.8
       }
     ]
   }

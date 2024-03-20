@@ -24,6 +24,14 @@ bool AddTransx(TX& transx);
 
 
 /**
+ * @brief 由coin node调用, 将区块添加到区块链
+ * @param block
+ * @return
+ */
+bool AddBlock(Block& block);
+
+
+/**
  * @brief 由worker调用,通知挖矿完成, coin node因此将之前异步调用对象的结果取出
  * @return
  */

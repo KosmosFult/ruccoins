@@ -5,6 +5,7 @@
 #include "worker_node.h"
 #include <rpc/server.h>
 #include "worker_rpc.h"
+#include <iostream>
 
 int main(int argc, char** argv){
 
@@ -13,6 +14,7 @@ int main(int argc, char** argv){
     worker.Init(port);
     rpc::server worker_server(port);
     BindAll(worker_server);
+    std::cout << "[worker node]: On port " << port << std::endl;
     worker_server.run();
     return 0;
 }

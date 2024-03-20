@@ -3,5 +3,15 @@
     "127.0.0.1:8090",
     "127.0.0.1:8092"
   ],
-  "client_db": "/home/flt/workspace/bitcoin/clientDB"
+  "8090": {
+    "priv_key":"89F08B97236FAD2511A7A65627C5432311D7B5E62E39CC6C9BE378B424CDDF84",
+    "addr":"043a8286f0c284a164eb7a7a1531f6b69e389df8502d91ed8da40d60c338498de030a7f69bed6e2ec1aa091dd02676687dc571c7a18435103b9a8b68b606021b80"
+  },
+  "8092": {
+    "priv_key":"EA6EEE814A47F43E98D233EA1842D901946E40809A9B8862FD80C78F94EF593B",
+    "addr":"04270e68a6aaa13c6e5ff02589f3e93ffc4e76cd52ccd7245320683de8734b4c6505489b50cd1744745efd21861820c5544187bc14ea563cdb818f8ebe2475a3b9"
+  },
+  "client_db": "/home/flt/workspace/bitcoin/testenv/clientDB",
+  "user_init_file": "/home/flt/workspace/bitcoin/testenv/user_init.txt",
+  "test_env_path": "/home/flt/workspace/bitcoin/testenv"
 }

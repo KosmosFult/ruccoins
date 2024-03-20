@@ -19,6 +19,6 @@ void ruccoin::WorkerNode::Init(uint32_t port) {
 
 std::string ruccoin::WorkerNode::DoMining(const BlockHeader &bh) {
     uint32_t secs = GenRandom(3, 20);
-    sleep(secs);
+    SleepSeconds(secs);
     return GenRandom256();
 }

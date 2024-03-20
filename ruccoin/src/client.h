@@ -33,6 +33,7 @@ namespace ruccoin {
         std::vector<std::string> nodes_addr_;    // 所有coin_node的地址
         std::vector<rpc::client*> coin_nodes_;   // 所有coin_node的rpc链接
         std::string dbname_;
+        std::string init_file_name_;              // 初始化文件路径
         leveldb::DB* addr2priv_;                  // 地址到私钥的映射
 
         /**
@@ -65,6 +66,8 @@ namespace ruccoin {
         void ConnectAllNodes();
 
         void CloseAllNodes();
+
+        static std::pair<std::string, uint32_t> ParseAddr(const std::string& addr);
     };
 }
 

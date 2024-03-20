@@ -4,13 +4,13 @@
 
 #include "client.h"
 #include "utils.h"
+#include "config.h"
 #include <iostream>
 #include <fstream>
 #include <chrono>
 #include <nlohmann/json.hpp>
 
 using json = nlohmann::json;
-const std::string config_path = "/home/flt/workspace/bitcoin/ruccoin/config.json";
 
 void ruccoin::client::ConnectNode(const std::string &addr, uint32_t port) {
     auto new_node = new rpc::client(addr, port);
@@ -45,13 +45,14 @@ bool ruccoin::client::Signate(TX &transx) {
 ruccoin::client::client() {
 
     // 解析配置文件
-    std::fstream conf(config_path);
+    std::fstream conf(ruccoin::config_path);
     if (!conf.is_open()) {
         std::cerr << "Can not open: \"" << config_path << "\"" << std::endl;
     }
     json conf_json = json::parse(conf);
     nodes_addr_ = conf_json["node_addr"];
     dbname_ = conf_json["client_db"];
+    init_file_name_ = conf_json["user_init_file"];
 
     // 打开DB
     leveldb::Options options;
@@ -64,6 +65,7 @@ ruccoin::client::client() {
 ruccoin::client::~client() {
     for (auto &i: coin_nodes_)
         delete i;
+    delete addr2priv_;
 }
 
 void ruccoin::client::SendTransx(const TX &transx) {
@@ -97,17 +99,39 @@ void ruccoin::client::ConnectAllNodes() {
 }
 
 void ruccoin::client::GenUser(int n) {
-    std::ofstream key_file("user_keys.txt");
+    std::ofstream key_file(init_file_name_);
     if (!key_file.is_open()) {
         std::cerr << "Failed to open file for writing!" << std::endl;
         return;
     }
+
+    std::fstream conf(ruccoin::config_path);
+    if (!conf.is_open()) {
+        std::cerr << "Can not open: \"" << config_path << "\"" << std::endl;
+    }
+
+    // 将两个固定的特殊节点地址添加进去
+    json conf_json = json::parse(conf);
+    for(auto& addr : nodes_addr_){
+        auto addr_pair = ParseAddr(addr);
+        auto port_str = std::to_string(addr_pair.second);
+        std::string priv_key = conf_json[port_str]["priv_key"];
+        std::string user_addr = conf_json[port_str]["addr"];
+
+        addr2priv_->Put(leveldb::WriteOptions(), user_addr , priv_key);
+        std::string line = priv_key + "," + user_addr + "," + std::to_string(300);
+        key_file << line << std::endl;
+    }
+
+
     for (int i = 0; i < n; i++) {
         auto key_pair = GenAddr();
         addr2priv_->Put(leveldb::WriteOptions(), key_pair.second , key_pair.first);
-        std::string line = key_pair.first + "," + key_pair.second;
+        std::string line = key_pair.first + "," + key_pair.second + "," + std::to_string(300);
         key_file << line << std::endl;
     }
+
+    conf.close();
     key_file.close();
 }
 
@@ -157,4 +181,11 @@ void ruccoin::client::CloseAllNodes() {
     for(auto& node : coin_nodes_)
         delete node;
     coin_nodes_.clear();
+}
+
+std::pair<std::string, uint32_t> ruccoin::client::ParseAddr(const std::string &addr) {
+    auto flag = addr.find(':');
+    std::string node_ip = addr.substr(0, flag);
+    int node_port = atoi(addr.substr(flag + 1, addr.length() - flag).data());
+    return std::make_pair(node_ip, node_port);
 }

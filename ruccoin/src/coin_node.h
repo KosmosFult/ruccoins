@@ -63,6 +63,13 @@ namespace ruccoin {
          */
         bool SendBlock();
 
+        /**
+         * @brief 接收其它节点发来的区块，验证合法性，合法就加入区块链
+         * @param block
+         * @return
+         */
+        bool ReceiveBlock(Block& block);
+
 
 
         /**
@@ -73,7 +80,7 @@ namespace ruccoin {
 
 
     private:
-        std::string node_addr_;    // 节点自己的地址
+        std::string local_addr_;    // 节点自己的地址
         std::string user_addr_;    // 账户地址
         std::string priv_key_;     // 账户私钥
         uint32_t port_;
@@ -89,6 +96,9 @@ namespace ruccoin {
         std::future<clmdep_msgpack::object_handle> future;  // 用于存储异步调用的对象
         std::string block_chain_json_;  // 存储block chain的json文件
         std::vector<Block> block_chain_;
+
+
+        void UpdateBlance(const TXL& transx_list);
 
         static std::string HeaderHash(const BlockHeader& bh);
 
@@ -109,9 +119,12 @@ namespace ruccoin {
         static bool CheckSignature(const TX &transx);
 
 
+        bool CheckBlock(Block& block);
 
 
-        bool AddBlock(Block block);
+
+
+//        bool AddBlock(Block block);
 
 
         /**

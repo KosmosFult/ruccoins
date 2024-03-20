@@ -23,7 +23,7 @@ target_link_libraries(coin_node rpc nlohmann_json leveldb ${OPENSSL_LIBRARIES})
 
 add_executable(worker_node ./src/worker_node.cc ./src/worker_main.cc ./src/worker_rpc.cc
         src/utils.cc)
-target_link_libraries(worker_node rpc)
+target_link_libraries(worker_node rpc ${OPENSSL_LIBRARIES})
 
 add_executable(test_prog ./src/test_prog.cc
         src/utils.cc)

@@ -26,12 +26,14 @@ namespace ruccoin {
          */
         void Run();
         void TestRun();
+        void GenUser(int n);
 
     private:
         // std::unordered_map<std::string, std::string> pri2pub_;  // 私钥到公钥映射(使用leveldb, 因此已弃用)
         std::vector<std::string> nodes_addr_;    // 所有coin_node的地址
         std::vector<rpc::client*> coin_nodes_;   // 所有coin_node的rpc链接
         std::string dbname_;
+        std::string init_file_name_;              // 初始化文件路径
         leveldb::DB* addr2priv_;                  // 地址到私钥的映射
 
         /**
@@ -60,6 +62,12 @@ namespace ruccoin {
          * @param port
          */
         void ConnectNode(const std::string& addr, uint32_t port);
+
+        void ConnectAllNodes();
+
+        void CloseAllNodes();
+
+        static std::pair<std::string, uint32_t> ParseAddr(const std::string& addr);
     };
 }
 

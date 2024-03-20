@@ -16,7 +16,6 @@ bool AddTransx(TX& transx){
 }
 
 bool MiningEnd(){
-
     return true;
 }
 

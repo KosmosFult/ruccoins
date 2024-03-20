@@ -3,3 +3,9 @@
 testdb
 .idea
 cmake-build-debug
+test_prog.cc
+clientDB
+*_db
+user_*.txt
+testenv
+BlockChain*.json

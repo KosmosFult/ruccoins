@@ -53,10 +53,8 @@ int main() {
     auto status = DB::Open(options, dbname, &mydb);
 
     assert(status.ok());
-    Slice mkey("Alice");
-    Slice mvalue("1234567876");
     std::cout << dbname << std::endl;
-    mydb->Put(woptions, mkey, mvalue);
+    mydb->Put(WriteOptions(), "Alice", "12324255");
     std::string getval;
     mydb->Get(roptions, "Tom", &getval);    
     std::cout << getval << std::endl;

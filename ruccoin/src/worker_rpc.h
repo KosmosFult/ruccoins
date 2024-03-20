@@ -17,9 +17,9 @@ void BindAll(rpc::server& server);
 
 /**
  * @brief 由worker node对应的coin node调用, 计算传入的block，返回结果nonce
- * @param block
+ * @param bh
  * @return 计算好的nonce
  */
-std::string DoMining(Block block);
+std::string DoMining(BlockHeader bh);
 
 #endif //SIMPLEBITCOIN_WORKER_RPC_H

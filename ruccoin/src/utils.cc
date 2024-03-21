@@ -216,7 +216,7 @@ bool ValidateSignature(const TX& transx) {
     //解析出签名数据。这个字节序列是签名的实际二进制表示。
     for (size_t i = 0; i < sig_len; i++) {
         unsigned int byte;
-        sscanf_s(transx.signature.c_str() + 2 * i, "%02x", &byte);
+        sscanf(transx.signature.c_str() + 2 * i, "%02x", &byte);
         signature.push_back(static_cast<unsigned char>(byte));
     }
 

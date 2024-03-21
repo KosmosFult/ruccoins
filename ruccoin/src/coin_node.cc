@@ -126,8 +126,11 @@ bool ruccoin::CoinNode::Mining() {
         std::cout << "New Block " << on_packing_block_.header.hash.substr(0, 8) << "\n" << std::endl;
         block_chain_.push_back(on_packing_block_);
         UpdateBlance(on_packing_block_.transx_list);
-    } else
+    } else{
         std::cout << "Block expired!\n" << std::endl;
+        delete worker_;
+        return false;
+    }
     delete worker_;
     return true;
 }
@@ -313,6 +316,7 @@ bool ruccoin::CoinNode::ReceiveBlock(Block &block) {
         std::cout << "Block " << block.header.hash.substr(0, 8) << " added!\n" << std::endl;
         block_chain_.push_back(block);
         UpdateBlance(block.transx_list);
+        WriteBlockChain();
     }
     return true;
 }

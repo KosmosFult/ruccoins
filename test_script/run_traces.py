@@ -4,6 +4,8 @@ import time
 def read_trace_file(trace_file):
     with open(trace_file, "r") as file:
         for line in file:
+            if len(line) < 3:
+                break
             print(line.strip())
             sys.stdout.flush()
             time.sleep(1)

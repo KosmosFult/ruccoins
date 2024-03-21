@@ -24,7 +24,6 @@ int main(int argc, char** argv) {
     BindAll(coin_server);
     coin_server.async_run();
 
-    // 获取当前程序的路径
     std::string executable_dir = argv[0];
     size_t lastSlash = executable_dir.find_last_of("/");
     if (lastSlash != std::string::npos) {
@@ -36,12 +35,14 @@ int main(int argc, char** argv) {
     if(argc > 2)
         StartWorkerNode(port+1, executable_dir.c_str());
 
+    bool send_flag = false;
     while(true){
         SleepSeconds(2);
         if (cnode.MiningCond()) {
             cnode.PackBlock();
-            cnode.Mining();
-            cnode.SendBlock();
+            send_flag = cnode.Mining();
+            if(send_flag)
+                cnode.SendBlock();
         }
     }
     return 0;

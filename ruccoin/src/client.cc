@@ -154,7 +154,7 @@ void ruccoin::client::Run() {
         }
 
         if (input == "gen"){
-            GenUser(8);
+            GenUser(20);
             continue;
         }
 
@@ -180,7 +180,7 @@ void ruccoin::client::Run() {
         };
         Signate(transx);
         SendTransx(transx);
-        std::cout << "Succeed!" << std::endl;
+        std::cout << "Transx " << transx.signature.substr(0, 8) << " send!" << std::endl;
     }
 
 }

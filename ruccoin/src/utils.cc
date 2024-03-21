@@ -110,40 +110,19 @@ std::string readPrivateKeyFromFile(const std::string& filePath) {
 }
 
 
-
+// 私钥：一个随机数
 std::string exportPrivateKeyHex(EC_KEY* ec_key) {
+    // 从EC_KEY结构体中获取私钥部分。EC_KEY_get0_private_key函数返回
+    // 一个指向私钥的BIGNUM结构体的指针。  任意精度的整数。这种数据类型可以存储非常大的整数值，避免了溢出问题
     const BIGNUM* priv_bn = EC_KEY_get0_private_key(ec_key);
+    // 将私钥的BIGNUM结构体转换为十六进制字符串
     char* hex = BN_bn2hex(priv_bn);
     std::string priv_key_hex(hex);
     OPENSSL_free(hex);
     return priv_key_hex;
 }
 
-//std::string exportPublicKeyHash(EC_KEY* ec_key) {
-//    // 将EC公钥转换为字节序列
-//    int len = i2o_ECPublicKey(ec_key, NULL);
-//    unsigned char* pubKeyBytes = (unsigned char*)malloc(len);
-//    unsigned char* p = pubKeyBytes;
-//    if (!i2o_ECPublicKey(ec_key, &p)) {
-//        free(pubKeyBytes);
-//        return "";
-//    }
-//
-//    // 将公钥字节序列转换为十六进制字符串
-//    std::string pubKeyHex;
-//    for (int i = 0; i < len; ++i) {
-//        std::stringstream ss;
-//        ss << std::hex << std::setw(2) << std::setfill('0') << (int)pubKeyBytes[i];
-//        pubKeyHex += ss.str();
-//    }
-//    free(pubKeyBytes);
-//
-//    // 使用sha256函数计算公钥的SHA-256哈希
-//    std::string publicKeyHash = sha256(pubKeyHex);
-//
-//    return publicKeyHash;
-//}
-
+// 公钥椭圆曲线上的一个点
 std::string exportPublicKeyHex(EC_KEY* ec_key) {
     // 将EC公钥转换为字节序列
     int len = i2o_ECPublicKey(ec_key, NULL);
@@ -155,7 +134,7 @@ std::string exportPublicKeyHex(EC_KEY* ec_key) {
     if (!pubKeyBytes) {
         return ""; // 确保内存分配成功
     }
-
+    // 将公钥写入缓冲区
     unsigned char* p = pubKeyBytes;
     if (i2o_ECPublicKey(ec_key, &p) != len) {
         free(pubKeyBytes);
@@ -175,12 +154,18 @@ std::string exportPublicKeyHex(EC_KEY* ec_key) {
 
 
 std::pair<std::string, std::string> GenAddr() {
+    // 创建一个新的EC_KEY对象，指定使用NID_secp256k1椭圆曲线。
+    // 这个曲线是加密货币，特别是比特币中常用的。
     EC_KEY* ec_key = EC_KEY_new_by_curve_name(NID_secp256k1);
+
+    // 生成密钥对。这个函数将随机生成私钥，并计算相应的公钥。
     EC_KEY_generate_key(ec_key);
 
+    // 转换为十六进制字符串。
     std::string private_key_hex = exportPrivateKeyHex(ec_key);
     std::string public_key = exportPublicKeyHex(ec_key);
 
+    // 释放EC_KEY对象所占用的资源。
     EC_KEY_free(ec_key);
 
     return std::make_pair(private_key_hex, public_key);
@@ -217,7 +202,7 @@ EC_KEY* hexToPrivateKey(const std::string& hex) {
 
 
 bool ValidateSignature(const TX& transx) {
-    std::string pubHex = transx.from;
+    std::string pubHex = transx.from;  // from存储了 私钥对应的公钥
     EC_KEY* publicKey = hexToPublicKey(pubHex); // Hex转换公钥
     if (!publicKey) {
         std::cerr << "Error creating public key from hex." << std::endl;
@@ -228,9 +213,10 @@ bool ValidateSignature(const TX& transx) {
     std::vector<unsigned char> signature;
     size_t sig_len = transx.signature.length() / 2;
     signature.reserve(sig_len);
+    //解析出签名数据。这个字节序列是签名的实际二进制表示。
     for (size_t i = 0; i < sig_len; i++) {
         unsigned int byte;
-        sscanf(transx.signature.c_str() + 2 * i, "%02x", &byte);
+        sscanf_s(transx.signature.c_str() + 2 * i, "%02x", &byte);
         signature.push_back(static_cast<unsigned char>(byte));
     }
 
@@ -247,13 +233,15 @@ bool ValidateSignature(const TX& transx) {
 }
 
 
+
 std::string CalSignature(const TX& transx, const std::string& privHex) {
     EC_KEY* privateKey = hexToPrivateKey(privHex); // 使用之前定义的从Hex转换私钥的函数
     if (!privateKey) {
         std::cerr << "Error creating private key from hex." << std::endl;
         return "";
     }
-
+    
+    // 使用SHA-256 将这个交易映射成一个字符串
     std::string txHash = getHash(transx);
     unsigned char* signature = (unsigned char*)malloc(ECDSA_size(privateKey));
     unsigned int sig_len = 0;
@@ -278,6 +266,7 @@ std::string CalSignature(const TX& transx, const std::string& privHex) {
 }
 
 
+// not used 
 EC_KEY* createKeyFromPrivateHex(const std::string& privHex) {
     EC_KEY* key = EC_KEY_new_by_curve_name(NID_secp256k1);
     BIGNUM* priv_bn = BN_new();

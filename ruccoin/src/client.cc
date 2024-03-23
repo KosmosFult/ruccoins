@@ -180,7 +180,7 @@ void ruccoin::client::Run() {
         };
         Signate(transx);
         SendTransx(transx);
-        std::cout << "Transx " << transx.signature.substr(0, 8) << " send!" << std::endl;
+        std::cout << "Transx send!" << std::endl;
     }
 
 }

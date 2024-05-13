@@ -6,10 +6,13 @@
 #include <nlohmann/json.hpp>
 #include <fstream>
 #include <iostream>
+#include <filesystem>
+#include <list>
 #include "config.h"
 #include "utils.h"
 
 using json = nlohmann::json;
+namespace fs = std::filesystem;
 
 void to_json(json &j, const BlockHeader &header) {
     j = json{
@@ -41,6 +44,15 @@ void to_json(json &j, const Block &block) {
 }
 
 
+
+static void StartWorkerNode(int port, const char* executable_dir) {
+    std::cout << "Starting worker node..." << std::endl;
+    char cmd[100];
+    sprintf(cmd, "%s/worker_node %d %c", executable_dir, port, '&');
+//    sprintf(cmd, "%s/worker_node %d", executable_dir, port);
+    std::system(cmd);
+}
+
 ruccoin::CoinNode::CoinNode() : inited_(false) {
 
 }
@@ -70,14 +82,17 @@ void ruccoin::CoinNode::Init(uint32_t port) {
     std::cout << "[priv_key]: " << priv_key_.substr(0, 8) << "\n[addr]: " << user_addr_.substr(0, 8) << "\n"
               << std::endl;
 
-    std::string test_env_path = conf_json["test_env_path"];
+    std::string env_path = conf_json["test_env_path"];
 
-    // 区块链文件
-    block_chain_json_ = test_env_path + "/coin_" + std::to_string(port_) + "_blockchain.json";
-    ReadBlockChain();
+//    // 区块链文件
+//    block_chain_json_ = test_env_path + "/coin_" + std::to_string(port_) + "_blockchain.json";
+//    ReadBlockChain();
+
+    blockchain_dir_ = env_path + "/coin_" + std::to_string(port_) + "/blockchain";
+    ReadBlockChainHash(conf_json["genesis_block"]);
 
     // Open database
-    dbname_ = test_env_path + "/coin_" + std::to_string(port_) + "_db";
+    dbname_ = env_path + "/coin_" + std::to_string(port_) + "/leveldb";
     leveldb::Options options;
     options.create_if_missing = true;
     auto status = leveldb::DB::Open(options, dbname_, &balances_);
@@ -92,21 +107,26 @@ void ruccoin::CoinNode::Init(uint32_t port) {
 }
 
 bool ruccoin::CoinNode::AddTransx(const TX &transx) {
-    if (!CheckBalance(transx.from, transx.value))
-        return false;
+
+    // 不应该在这里检查而应该在执行的时候检查
+//    if (!CheckBalance(transx.from, transx.value))
+//        return false;
+
     if (!CheckSignature(transx))
         return false;
     tx_pool_.push_back(transx);
 
+#ifdef  LOGTX
     std::cout << "Get transx\n" << "[From]: " + transx.from.substr(0, 8) + "\n"
               << "[To]:" + transx.to.substr(0, 8) + "\n" << std::endl;
+#endif
 
     return true;
 }
 
 
-bool ruccoin::CoinNode::MiningCond() {
-    return tx_pool_.size() >= 3;
+bool ruccoin::CoinNode::TryPublishCond() {
+    return tx_pool_.size() >= 20;
 }
 
 bool ruccoin::CoinNode::Mining() {
@@ -141,7 +161,7 @@ std::string ruccoin::CoinNode::GetMerkle() {
 }
 
 void ruccoin::CoinNode::PackBlock() {
-    assert(MiningCond());
+    assert(TryPublishCond());
     on_packing_block_.header = {
             block_chain_.back().header.height + 1,
             ruccoin::target,
@@ -286,6 +306,13 @@ void ruccoin::CoinNode::WriteBlockChain() {
     std::cout << "Block chain writing\n" << std::endl;
 }
 
+void ruccoin::CoinNode::WriteBlock(const Block& block) {
+    json jblock(block);
+    std::ofstream json_file(block.header.hash + ".json");
+    json_file << std::setw(2) << jblock << std::endl;
+    json_file.close();
+}
+
 bool ruccoin::CoinNode::SendBlock() {
     WriteBlockChain();
     for (auto &addr: node_addr) {
@@ -335,3 +362,57 @@ void ruccoin::CoinNode::UpdateBlance(const TXL &transx_list) {
                        tx.to, std::to_string(std::stod(to_balance) + tx.value));
     }
 }
+
+void ruccoin::CoinNode::ReadBlockChainHash(const std::string& genesis_block_hash) {
+    block_chain_hash_.clear();
+    std::list<std::pair<std::string, std::string>> hash_prehash;
+
+    for (const auto& entry : fs::directory_iterator(blockchain_dir_)) {
+        if (entry.is_regular_file() && entry.path().extension() == ".json") {
+            if(entry.path().filename().stem() == genesis_block_hash)
+                continue;
+            std::ifstream block(entry.path());
+            if (!block.is_open()) {
+                std::cerr << entry.path() << " not exists\n" << std::endl;
+                return;
+            }
+
+            json block_json = json::parse(block);
+            hash_prehash.emplace_back(entry.path().filename().stem(), block_json["header"]["prev_hash"]);
+        }
+    }
+    block_chain_hash_.push_back(genesis_block_hash);
+    while(!hash_prehash.empty() ){
+        auto it = hash_prehash.begin();
+        for(; it != hash_prehash.end(); it++){
+            if(it->second == block_chain_hash_.back()){
+                block_chain_hash_.push_back(it->first);
+                hash_prehash.erase(it);
+                break;
+            }
+        }
+        if(it == hash_prehash.end())  // 有冗余block(不能把所有文件建立成一个链)
+            break;
+    }
+}
+
+void ruccoin::CoinNode::Run(int argc, char** argv) {
+
+    fs::path prog_path(argv[0]);
+    fs::path prog_dir = prog_path.parent_path();
+#ifdef  MINIG_MODE
+    StartWorkerNode(port+1, prog_dir.c_str());
+#endif
+    bool send_flag = false;
+    while(true){
+        SleepSeconds(2);
+        if (TryPublishCond()) {
+            PackBlock();
+            send_flag = Mining();
+            if(send_flag)
+                SendBlock();
+        }
+    }
+}
+
+

@@ -6,7 +6,7 @@ cmake-build-debug
 clientDB
 *_db
 user_*.txt
-testenv
+testenv*
 BlockChain*.json
 *trace*.txt
 /run_test.sh

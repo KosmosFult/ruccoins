@@ -8,6 +8,18 @@ include_directories(../thirdparty/rpclib/include)
 include_directories(../thirdparty/json/include)
 include_directories(../thirdparty/picosha2)
 
+option(LOGTX_SWITCH "print tx when receive" OFF)
+option(MINING_MODE_SWITCH "use mining to reach consensus" OFF)
+
+if(LOGTX_SWITCH)
+    add_definitions(LOGTX)
+endif (LOGTX_SWITCH)
+
+if(MINING_MODE_SWITCH)
+    add_definitions(MINING_MODE)
+endif (MINING_MODE_SWITCH)
+
+
 # 查找OpenSSL库
 find_package(OpenSSL REQUIRED)
 
@@ -19,7 +31,7 @@ add_executable(client ./src/client.cc ./src/client_main.cc
 target_link_libraries(client rpc nlohmann_json leveldb ${OPENSSL_LIBRARIES})
 
 add_executable(coin_node ./src/coin_node.cc ./src/coin_main.cc ./src/coin_rpc.cc
-        src/utils.cc)
+        src/utils.cc ./src/pbft/bft_node.cc)
 target_link_libraries(coin_node rpc nlohmann_json leveldb ${OPENSSL_LIBRARIES})
 
 add_executable(worker_node ./src/worker_node.cc ./src/worker_main.cc ./src/worker_rpc.cc

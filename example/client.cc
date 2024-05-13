@@ -6,6 +6,7 @@
 #include <string>
 #include <openssl/ecdsa.h>
 #include <vector>
+#include "structure.h"
 using json = nlohmann::json;
 
 using namespace leveldb;
@@ -29,6 +30,11 @@ int main() {
     // Calling a function with paramters and converting the result to int
     auto result = client.call("add", 2, 3).as<int>();
     std::cout << "The resultsss is: " << result << std::endl;
+
+    Message m;
+    m.header.mtype = Mtype::prepare;
+    m.header.key = "mykey";
+    std::cout << client.call("get_message", m).as<int>() << std::endl;
 
     call_sleep(client);
     std::cout << "flag" << std::endl;

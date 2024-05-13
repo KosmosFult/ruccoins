@@ -33,14 +33,16 @@ namespace ruccoin {
 
 
         /**
-         * @brief 先检查交易是否合法, 合法就添加到交易池
+         * @brief 先检查交易签名, 合法就添加到交易池
          * @param transx
          * @return true:合法且添加成功,false:不合法或添加错误
          */
         bool AddTransx(const TX &transx);
 
         /**
-         * @brief 将当前交易池进行打包
+         * @brief 将当前交易池进行打包, 注意会预执行一遍交易，如果存在执行过程中余额不足，则删除该交易
+         * 1. 顺序预执行交易，若出现余额不足，则丢弃该交易
+         * 2. 当执行的交易到达指定数量时，打包区块，并更新状态数据库
          */
         void PackBlock();
 
@@ -51,10 +53,10 @@ namespace ruccoin {
         bool Mining();
 
         /**
-         * @brief 满足开始挖矿的条件，恒true，待完成
+         * @brief 满足开始发布区块的条件，恒true，待完成
          * @return
          */
-        bool MiningCond();
+        bool TryPublishCond();
 
         /**
          * @brief 先将区块持久化，向其它节点发送区块
@@ -79,6 +81,10 @@ namespace ruccoin {
         void MiningEnd();
 
 
+
+        void Run(int argc, char** argv);
+
+
     private:
         std::string local_addr_;    // 节点自己的地址
         std::string user_addr_;    // 账户地址
@@ -87,6 +93,7 @@ namespace ruccoin {
         uint32_t worker_port_;
         bool inited_;                // 是否已初始化
         std::string dbname_;  // 用户余额数据库目录
+        std::string blockchain_dir_; // 存区块链的目录
         leveldb::DB *balances_;     // 余额数据库
         TXL tx_pool_;   // 交易池
         rpc::client *worker_;       // worker node的rpc连接
@@ -94,9 +101,13 @@ namespace ruccoin {
 //        Block current_block_;      // 区块链上最新区块
         Block on_packing_block_;   // 正在打包的区块
         std::future<clmdep_msgpack::object_handle> future;  // 用于存储异步调用的对象
+
+        // 以下方法用于将所有区块存到一个json，未来弃用
         std::string block_chain_json_;  // 存储block chain的json文件
         std::vector<Block> block_chain_;
 
+        // 一个区块一个json
+        std::vector<std::string> block_chain_hash_;  // 整个block chain的哈希
 
         void UpdateBlance(const TXL& transx_list);
 
@@ -138,8 +149,11 @@ namespace ruccoin {
         void ReadUserData(const std::string& file_name);
 
         void ReadBlockChain();
+        void ReadBlockChainHash(const std::string& genesis_block_hash);
 
         void WriteBlockChain();
+
+        void WriteBlock(const Block& block);
 
     };
 }

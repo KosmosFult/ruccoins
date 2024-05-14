@@ -85,6 +85,9 @@ namespace PBFT {
 
         static bool CheckSignature(const Message &m);
 
+
+        Message(){}
+
         Message(PBFT_MType msg_type, uint32_t replica_id, uint32_t client_id, uint64_t time_stamp, std::string pub_key,
                 uint64_t seq, uint32_t view_id, std::string body = "");
 
@@ -134,7 +137,7 @@ namespace PBFT {
          * 若该消息对应的提案没有在提案表中，则添加到提案表
          * @param m，pre-prepare的消息，body为提案原始信息
          */
-        void Prepare(Message m);
+        void Prepare(const Message& m);
 
         /**
          * @brief rpc 调用，收到其它节点的paprare消息，更新对应提案的投票信息prepare_votes，并检查是否达到合法值，若达到则广播commit信息。
@@ -170,7 +173,7 @@ namespace PBFT {
          * @param p 需要检查的proposal
          * @return
          */
-        bool CheckProposal(const std::shared_ptr<Proposal> p);
+        static bool CheckProposal(const std::shared_ptr<Proposal>& p);
 
 
     };

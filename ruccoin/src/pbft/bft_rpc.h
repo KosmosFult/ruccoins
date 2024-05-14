@@ -13,8 +13,14 @@ void GetRequest(PBFT::Request r){
     pnode.GetRequest(r);
 }
 
+void Prepare(PBFT::Message m){
+    auto& pnode = PBFT::PBFTHandler::getInstance();
+    pnode.Prepare(m);
+}
+
 static void BindAll(rpc::server& server){
     server.bind("GetRequest", &GetRequest);
+    server.bind("Prepare", &Prepare);
 }
 
 #endif

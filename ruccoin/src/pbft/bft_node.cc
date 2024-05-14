@@ -101,11 +101,11 @@ namespace PBFT {
     }
 
     void PBFTHandler::SendMessage(const Message &m) {
-        std::vector<rpc::client *> connects;
+        std::vector<std::shared_ptr<rpc::client>> connects;
         std::vector<std::future<clmdep_msgpack::object_handle>> futures;
 
         for (auto &node: nodes_) {
-            auto *cl = new rpc::client(node.second.hostname, node.second.port);
+            auto cl = std::make_shared<rpc::client>(node.second.hostname, node.second.port);
             connects.push_back(cl);
             switch (m.mtype) {
                 case PBFT_MType::Preprepare:
@@ -127,12 +127,9 @@ namespace PBFT {
             }
         }
 
-        for (auto &cl: connects) {
-            delete cl;
-        }
     }
 
-    void PBFTHandler::Prepare(Message m) {
+    void PBFTHandler::Prepare(const Message& m) {
         if (!Message::CheckSignature(m))
             return;
 
@@ -145,10 +142,15 @@ namespace PBFT {
 
         if(!CheckProposal(proposals_[current_seq]))
             return;
-        std::cout << "PBFT node[" << id_ << "] Prepare" << std::endl;
+        std::cout << "PBFT node[" << id_ << "] Prepare, proposal["<< current_seq << "]" << std::endl;
+
+        Message sm(PBFT_MType::Prepare, id_, m.client_id, m.time_stamp, pub_key, current_seq, 0);
+        Message::Signate(sm, priv_key);
+        assert(Message::CheckSignature(sm));
+        SendMessage(sm);
     }
 
-    bool PBFTHandler::CheckProposal(const std::shared_ptr<Proposal> p){
+    bool PBFTHandler::CheckProposal(const std::shared_ptr<Proposal>& p){
         return true;
     }
 

@@ -19,6 +19,7 @@ public:
     MSGPACK_DEFINE_ARRAY(key, id, mtype);
 };
 class Message{
+public:
     MessageHeader header;
     Block block;
     MSGPACK_DEFINE_ARRAY(header, block);

@@ -14,34 +14,34 @@
 using json = nlohmann::json;
 namespace fs = std::filesystem;
 
-void to_json(json &j, const BlockHeader &header) {
-    j = json{
-            {"height",      header.height},
-            {"target",      header.target},
-            {"prev_hash",   header.prev_hash},
-            {"hash",        header.hash},
-            {"merkle_root", header.merkle_root},
-            {"nonce",       header.nonce}
-    };
-}
-
-void to_json(json &j, const TX &tx) {
-    j = json{
-            {"time_stamp", tx.time_stamp},
-            {"from",       tx.from},
-            {"to",         tx.to},
-            {"value",      tx.value},
-            {"signature",  tx.signature}
-    };
-}
-
-
-void to_json(json &j, const Block &block) {
-    j = json{
-            {"header",      block.header},
-            {"transx_list", block.transx_list}
-    };
-}
+//void to_json(json &j, const BlockHeader &header) {
+//    j = json{
+//            {"height",      header.height},
+//            {"target",      header.target},
+//            {"prev_hash",   header.prev_hash},
+//            {"hash",        header.hash},
+//            {"merkle_root", header.merkle_root},
+//            {"nonce",       header.nonce}
+//    };
+//}
+//
+//void to_json(json &j, const TX &tx) {
+//    j = json{
+//            {"time_stamp", tx.time_stamp},
+//            {"from",       tx.from},
+//            {"to",         tx.to},
+//            {"value",      tx.value},
+//            {"signature",  tx.signature}
+//    };
+//}
+//
+//
+//void to_json(json &j, const Block &block) {
+//    j = json{
+//            {"header",      block.header},
+//            {"transx_list", block.transx_list}
+//    };
+//}
 
 
 
@@ -262,32 +262,33 @@ void ruccoin::CoinNode::ReadBlockChain() {
     json bc_josn = json::parse(bc);
 
     for (auto &block: bc_josn) {
-        // Parse block header
-        BlockHeader header;
-        header.height = block["header"]["height"];
-        header.target = block["header"]["target"];
-        header.prev_hash = block["header"]["prev_hash"];
-        header.hash = block["header"]["hash"];
-        header.merkle_root = block["header"]["merkle_root"];
-        header.nonce = block["header"]["nonce"];
-
-        // Parse transactions
-        TXL transx_list;
-        for (const auto &txData: block["transx_list"]) {
-            TX tx;
-            tx.time_stamp = txData["time_stamp"];
-            tx.from = txData["from"];
-            tx.to = txData["to"];
-            tx.value = txData["value"];
-            tx.signature = txData["signature"];
-            transx_list.push_back(tx);
-        }
-
-        // Create block and add it to blockchain
-        Block cb;
-        cb.header = header;
-        cb.transx_list = transx_list;
-        block_chain_.push_back(cb);
+//        // Parse block header
+//        BlockHeader header;
+//        header.height = block["header"]["height"];
+//        header.target = block["header"]["target"];
+//        header.prev_hash = block["header"]["prev_hash"];
+//        header.hash = block["header"]["hash"];
+//        header.merkle_root = block["header"]["merkle_root"];
+//        header.nonce = block["header"]["nonce"];
+//
+//        // Parse transactions
+//        TXL transx_list;
+//        for (const auto &txData: block["transx_list"]) {
+//            TX tx;
+//            tx.time_stamp = txData["time_stamp"];
+//            tx.from = txData["from"];
+//            tx.to = txData["to"];
+//            tx.value = txData["value"];
+//            tx.signature = txData["signature"];
+//            transx_list.push_back(tx);
+//        }
+//
+//        // Create block and add it to blockchain
+//        Block cb;
+//        cb.header = header;
+//        cb.transx_list = transx_list;
+//        block_chain_.push_back(cb);
+        block_chain_.push_back(block.template get<Block>());
     }
     bc.close();
 

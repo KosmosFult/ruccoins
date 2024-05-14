@@ -36,7 +36,7 @@ uint32_t GenRandom(int start, int end);
 
 std::string GenRandom256();
 
-std::string RuccoinHash(std::string& data);
+std::string RuccoinHash(const std::string& data);
 
 /**
  * @brief 生成私钥和地址

@@ -41,3 +41,9 @@ target_link_libraries(worker_node rpc ${OPENSSL_LIBRARIES})
 add_executable(test_prog ./src/test_prog.cc
         src/utils.cc)
 target_link_libraries(test_prog ${OPENSSL_LIBRARIES} nlohmann_json)
+
+add_executable(bft_main ./src/pbft/bft_node.cc ./src/pbft/bft_node.cc ./src/utils.cc ./src/pbft/bft_main.cc)
+target_link_libraries(bft_main rpc nlohmann_json ${OPENSSL_LIBRARIES})
+
+add_executable(test_pbft ./test/test_pbft.cc)
+target_link_libraries(test_pbft rpc)

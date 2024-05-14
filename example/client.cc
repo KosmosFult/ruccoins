@@ -7,6 +7,8 @@
 #include <openssl/ecdsa.h>
 #include <vector>
 #include "structure.h"
+#include <chrono>
+
 using json = nlohmann::json;
 
 using namespace leveldb;
@@ -15,8 +17,7 @@ const std::string dbname = "/home/flt/workspace/bitcoin/testdb";
 
 std::future<clmdep_msgpack::object_handle> future;
 
-void call_sleep(rpc::client& client)
-{
+void call_sleep(rpc::client &client) {
     future = client.async_call("my_sleep");
 }
 
@@ -38,8 +39,13 @@ int main() {
 
     call_sleep(client);
     std::cout << "flag" << std::endl;
-    int res = future.get().as<int>();
-    std::cout << res << std::endl;
+
+    if (future.wait_for(std::chrono::seconds(10)) == std::future_status::timeout){
+        std::cerr << "time out\n";
+    } else{
+        int res = future.get().as<int>();
+        std::cout << res << std::endl;
+    }
 
     // Json的例子
     std::ifstream f("/home/flt/workspace/bitcoin/example/test.json");
@@ -47,7 +53,7 @@ int main() {
     std::cout << data["name"] << std::endl;
 
     std::vector<std::string> addrs = data["node_addr"];
-    for(auto addr : addrs)
+    for (auto addr: addrs)
         std::cout << addr << std::endl;
 
     // Leveldb的例子
@@ -55,16 +61,16 @@ int main() {
     ReadOptions roptions;
     options.create_if_missing = true;
     WriteOptions woptions;
-    DB* mydb;
+    DB *mydb;
     auto status = DB::Open(options, dbname, &mydb);
 
     assert(status.ok());
     std::cout << dbname << std::endl;
     mydb->Put(WriteOptions(), "Alice", "12324255");
     std::string getval;
-    mydb->Get(roptions, "Tom", &getval);    
+    mydb->Get(roptions, "Tom", &getval);
     std::cout << getval << std::endl;
-    mydb->Get(roptions, "Alice", &getval);    
+    mydb->Get(roptions, "Alice", &getval);
     std::cout << getval << std::endl;
 
     delete mydb;

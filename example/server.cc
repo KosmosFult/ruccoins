@@ -11,7 +11,7 @@ void bar() {
 }
 
 int my_sleep(){
-    sleep(10);
+    sleep(100);
     return 6;
 }
 

@@ -18,9 +18,15 @@ void Prepare(PBFT::Message m){
     pnode.Prepare(m);
 }
 
+void Commit(PBFT::Message m){
+    auto& pnode = PBFT::PBFTHandler::getInstance();
+    pnode.Commit(m);
+}
+
 static void BindAll(rpc::server& server){
     server.bind("GetRequest", &GetRequest);
     server.bind("Prepare", &Prepare);
+    server.bind("Commit", &Commit);
 }
 
 #endif

@@ -9,6 +9,9 @@
 #include <rpc/client.h>
 #include "../singleton.h"
 #include <memory>
+#include "spdlog/spdlog.h"
+#include "spdlog/pattern_formatter.h"
+#include "spdlog/sinks/stdout_color_sinks.h"
 //#include "../structure.h"
 
 enum class PBFT_MType {
@@ -28,7 +31,7 @@ namespace PBFT {
 
 
     namespace system_value {
-        const uint32_t timeout = 3000;
+        const uint32_t timeout = 8000;
     }
 
     class Message;
@@ -89,7 +92,7 @@ namespace PBFT {
         Message(){}
 
         Message(PBFT_MType msg_type, uint32_t replica_id, uint32_t client_id, uint64_t time_stamp, std::string pub_key,
-                uint64_t seq, uint32_t view_id, std::string body = "");
+                uint64_t seq, uint32_t view_id, std::string digest, std::string body = "");
 
         MSGPACK_DEFINE_ARRAY(mtype, replica_id, pub_key, seq, view_id, digest, signature, body);
     };
@@ -102,10 +105,18 @@ namespace PBFT {
         uint64_t time_stamp;   // 提案提出时间
         std::string body;
         uint32_t f;
-        std::vector<uint32_t> prepare_votes;
-        std::vector<uint32_t> commit_votes;
+        bool prepared;
+        bool committed;
+        // key为digest，value是投票。因为可能消息被篡改，因此需要通过digest区别投票
+//        std::map<std::string, std::string> message;  // digest到原始message
+        std::map<std::string, std::vector<uint32_t>> prepare_votes;
+        std::map<std::string, std::vector<uint32_t>> commit_votes;
 
         Proposal(uint32_t time_stamp, uint32_t client_id, uint64_t seq, std::string body, uint32_t f);
+
+        void UpdateInfo(const Message& m);
+
+        bool CheckVotes(PBFT_MType mtype);
     };
 
     class PBFTHandler : public PublicSingleton<PBFTHandler> {
@@ -144,7 +155,7 @@ namespace PBFT {
          * 若该消息对应的提案没有在提案表中，则添加到提案表
          * @param m，prepare的消息, body为空
          */
-        void Commit(Message m);
+        void Commit(const Message& m);
 
         uint32_t GetPort() { return nodes_[id_].port; }
 
@@ -164,6 +175,9 @@ namespace PBFT {
         std::map<uint64_t, std::shared_ptr<Proposal>> proposals_;
         std::map<uint32_t, NodeMeta> nodes_;
 
+        std::shared_ptr<spdlog::logger> console_logger_;
+        std::shared_ptr<spdlog::logger> error_logger_;
+
         static std::pair<std::string, uint32_t> ParseAddr(const std::string &addr);
 
         void SendMessage(const Message &m);
@@ -174,6 +188,8 @@ namespace PBFT {
          * @return
          */
         static bool CheckProposal(const std::shared_ptr<Proposal>& p);
+
+        bool CheckSeqNumber(const Message &m);
 
 
     };

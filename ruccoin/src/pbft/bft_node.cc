@@ -7,6 +7,7 @@
 #include <utility>
 #include <nlohmann/json.hpp>
 #include <chrono>
+#include <rpc/rpc_error.h>
 
 using json = nlohmann::json;
 
@@ -14,13 +15,11 @@ namespace PBFT {
 
     Message::Message(PBFT_MType msg_type, uint32_t replica_id, uint32_t client_id, uint64_t time_stamp,
                      std::string pub_key, uint64_t seq,
-                     uint32_t view_id,
+                     uint32_t view_id, std::string digest,
                      std::string body) : mtype(msg_type), replica_id(replica_id), client_id(client_id),
                                          time_stamp(time_stamp),
                                          pub_key(std::move(pub_key)), seq(seq),
-                                         view_id(view_id), body(std::move(body)) {
-
-        digest = GetDigest(body);
+                                         view_id(view_id), digest(std::move(digest)), body(std::move(body)) {
 
     }
 
@@ -29,7 +28,43 @@ namespace PBFT {
             : time_stamp(time_stamp), client_id(client_id),
               stat(PBFT_PStat::pre_prepared),
               seq(seq), f(f),
-              body(std::move(body)) {
+              body(std::move(body)), prepared(false), committed(false) {
+    }
+
+    void Proposal::UpdateInfo(const Message &m) {
+
+        if (m.mtype == PBFT_MType::Prepare) {
+            if (prepare_votes.find(m.digest) == prepare_votes.end())
+                prepare_votes.insert(std::make_pair(m.digest, std::vector<uint32_t>()));
+            prepare_votes[m.digest].push_back(m.replica_id);
+        } else if (m.mtype == PBFT_MType::Commit) {
+            if (commit_votes.find(m.digest) == commit_votes.end())
+                commit_votes.insert(std::make_pair(m.digest, std::vector<uint32_t>()));
+            commit_votes[m.digest].push_back(m.replica_id);
+        }
+
+    }
+
+    bool Proposal::CheckVotes(PBFT_MType mtype) {
+
+        auto f_ = f;
+        if (mtype == PBFT_MType::Prepare) {
+            if (prepared)
+                return true;
+            if (std::any_of(prepare_votes.begin(), prepare_votes.end(),
+                            [f_](const auto &p) { return p.second.size() >= (2 * f_ + 1); }))
+                return true;
+            return false;
+        } else if (mtype == PBFT_MType::Commit) {
+            if (committed)
+                return true;
+            if (std::any_of(commit_votes.begin(), commit_votes.end(),
+                            [f_](const auto &p) { return p.second.size() >= (2 * f_ + 1); }))
+                return true;
+            return false;
+        }
+
+        return false;
     }
 
     void PBFTHandler::GetRequest(const Request &req) {
@@ -41,12 +76,15 @@ namespace PBFT {
     void PBFTHandler::Preprepare(const Request &req) {
         uint64_t current_seq = next_proposal_seq_++;
 
+        console_logger_->info("Preprepare seq: {}", current_seq);
+
         if (proposals_.find(current_seq) == proposals_.end()) {
             auto p = std::make_shared<Proposal>(req.time_stamp, req.client_id, current_seq, req.body, f_);
             proposals_.insert(std::make_pair(current_seq, p));
         }
 
-        Message m(PBFT_MType::Preprepare, id_, req.client_id, req.time_stamp, pub_key, current_seq, 0, req.body);
+        Message m(PBFT_MType::Preprepare, id_, req.client_id, req.time_stamp, pub_key, current_seq, 0,
+                  Message::GetDigest(req.body), req.body);
         Message::Signate(m, priv_key);
         assert(Message::CheckSignature(m));
         SendMessage(m);
@@ -89,6 +127,12 @@ namespace PBFT {
 
         next_proposal_seq_ = 0;
         f_ = (nodes_.size() - 1) / 3;
+
+        console_logger_ = spdlog::stdout_color_mt("console");
+        std::string pattern = "[PBFT NODE " + std::to_string(id_) + "] %v";
+        console_logger_->set_pattern(pattern);
+        error_logger_ = spdlog::stderr_color_mt("stderr");
+        error_logger_->set_pattern(pattern);
         inited_ = true;
     }
 
@@ -105,6 +149,7 @@ namespace PBFT {
         std::vector<std::future<clmdep_msgpack::object_handle>> futures;
 
         for (auto &node: nodes_) {
+
             auto cl = std::make_shared<rpc::client>(node.second.hostname, node.second.port);
             connects.push_back(cl);
             switch (m.mtype) {
@@ -120,39 +165,70 @@ namespace PBFT {
         }
 
         for (auto &f: futures) {
-            if (f.wait_for(std::chrono::microseconds(system_value::timeout)) == std::future_status::timeout) {
-                std::cerr << "Send message time out" << std::endl;
+            if (f.wait_for(std::chrono::milliseconds(system_value::timeout)) == std::future_status::timeout) {
+                error_logger_->info("Send message time out");
             } else {
-                f.get();
+//                    f.get();
             }
         }
 
+        console_logger_->info("exit send message");
+
     }
 
-    void PBFTHandler::Prepare(const Message& m) {
+
+    void PBFTHandler::Prepare(const Message &m) {
         if (!Message::CheckSignature(m))
             return;
 
-        uint64_t current_seq = next_proposal_seq_++;
+        if (!CheckSeqNumber(m))
+            return;
 
-        if (proposals_.find(current_seq) == proposals_.end()) {
-            auto p = std::make_shared<Proposal>(m.time_stamp, m.client_id, current_seq, m.body, f_);
-            proposals_.insert(std::make_pair(current_seq, p));
+        if (proposals_.find(m.seq) == proposals_.end()) {
+            auto p = std::make_shared<Proposal>(m.time_stamp, m.client_id, m.seq, m.body, f_);
+            proposals_.insert(std::make_pair(m.seq, p));
         }
 
-        if(!CheckProposal(proposals_[current_seq]))
+        if (!CheckProposal(proposals_[m.seq]))
             return;
-        std::cout << "PBFT node[" << id_ << "] Prepare, proposal["<< current_seq << "]" << std::endl;
 
-        Message sm(PBFT_MType::Prepare, id_, m.client_id, m.time_stamp, pub_key, current_seq, 0);
+        console_logger_->info("(Prepare), seq:{}, m:{}", m.seq, m.body);
+
+        Message sm(PBFT_MType::Prepare, id_, m.client_id, m.time_stamp, pub_key, m.seq, 0, Message::GetDigest(m.body));
         Message::Signate(sm, priv_key);
         assert(Message::CheckSignature(sm));
         SendMessage(sm);
     }
 
-    bool PBFTHandler::CheckProposal(const std::shared_ptr<Proposal>& p){
+    void PBFTHandler::Commit(const Message &m) {
+        if (!Message::CheckSignature(m))
+            return;
+        if (!CheckSeqNumber(m))
+            return;
+
+
+        if (proposals_.find(m.seq) == proposals_.end()) {
+            auto p = std::make_shared<Proposal>(m.time_stamp, m.client_id, m.seq, m.body, f_);
+            proposals_.insert(std::make_pair(m.seq, p));
+        }
+
+        auto &p = proposals_[m.seq];
+        p->UpdateInfo(m);
+        if (p->CheckVotes(m.mtype)) {
+            p->prepared = true;
+            console_logger_->info("Commit seq:{}", m.seq);
+        }
+    }
+
+
+    bool PBFTHandler::CheckProposal(const std::shared_ptr<Proposal> &p) {
         return true;
     }
+
+    bool PBFTHandler::CheckSeqNumber(const Message &m) {
+        return true;
+    }
+
 
     void Message::Signate(Message &m, std::string &priv_key) {
         EC_KEY *privateKey = hexToPrivateKey(priv_key); // 使用之前定义的从Hex转换私钥的函数

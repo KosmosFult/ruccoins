@@ -10,3 +10,4 @@ testenv*
 BlockChain*.json
 *trace*.txt
 /run_test.sh
+thirdparty

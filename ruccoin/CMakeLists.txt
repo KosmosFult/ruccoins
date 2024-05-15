@@ -19,6 +19,10 @@ if(MINING_MODE_SWITCH)
     add_definitions(MINING_MODE)
 endif (MINING_MODE_SWITCH)
 
+if(NOT TARGET spdlog)
+    # Stand-alone build
+    find_package(spdlog REQUIRED)
+endif()
 
 # 查找OpenSSL库
 find_package(OpenSSL REQUIRED)
@@ -43,7 +47,7 @@ add_executable(test_prog ./src/test_prog.cc
 target_link_libraries(test_prog ${OPENSSL_LIBRARIES} nlohmann_json)
 
 add_executable(bft_main ./src/pbft/bft_node.cc ./src/pbft/bft_node.cc ./src/utils.cc ./src/pbft/bft_main.cc)
-target_link_libraries(bft_main rpc nlohmann_json ${OPENSSL_LIBRARIES})
+target_link_libraries(bft_main rpc nlohmann_json ${OPENSSL_LIBRARIES} spdlog::spdlog)
 
 add_executable(test_pbft ./test/test_pbft.cc)
-target_link_libraries(test_pbft rpc)
+target_link_libraries(test_pbft rpc spdlog::spdlog)

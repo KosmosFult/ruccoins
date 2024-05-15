@@ -6,8 +6,10 @@
 #include <unistd.h>
 #include "../src/pbft/include/bft.h"
 int main(){
-    rpc::client cl("127.0.0.1", 19090);
-    PBFT::Request r(1, 8942894, "I have a request!");
-    cl.call("GetRequest", r);
+//    rpc::client cl("127.0.0.1", 19090);
+//    PBFT::Request r(1, 8942894, "I have a request!");
+//    cl.call("GetRequest", r);
+    rpc::client cl("127.0.0.1", 18090);
+    cl.call("CheckProposal", "");
     return 0;
 }

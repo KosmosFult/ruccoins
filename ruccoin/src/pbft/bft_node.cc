@@ -68,7 +68,7 @@ namespace PBFT {
     }
 
     void PBFTHandler::GetRequest(const Request &req) {
-        assert(current_primary_ == id_);
+//        assert(current_primary_ == id_);
         Preprepare(req);
 //        std::cout << req.body << std::endl;
     }
@@ -259,6 +259,7 @@ namespace PBFT {
     bool PBFTHandler::CheckProposal(const std::shared_ptr<Proposal> &p) {
         try{
             rpc::client cl(master_name_.first, master_name_.second);
+            std::string body = p->body;
             bool valid = cl.call(check_proposal_call_name_, p->body).as<bool>();
             return valid;
         }catch (rpc::rpc_error &e) {

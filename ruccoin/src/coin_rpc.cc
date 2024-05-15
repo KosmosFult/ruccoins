@@ -4,6 +4,7 @@
 
 #include "coin_rpc.h"
 #include "coin_node.h"
+#include <iostream>
 
 void BindAll(rpc::server& server){
     server.bind("AddTransx", &AddTransx);
@@ -27,5 +28,6 @@ bool MiningEnd(){
 }
 
 bool CheckProposal(std::string p){
+    std::cout << "check" <<std::endl;
     return true;
 }

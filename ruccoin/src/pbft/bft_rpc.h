@@ -23,10 +23,17 @@ void Commit(PBFT::Message m){
     pnode.Commit(m);
 }
 
+void Reply(PBFT::Message m){
+    auto& pnode = PBFT::PBFTHandler::getInstance();
+    pnode.Reply(m);
+}
+
+
 static void BindAll(rpc::server& server){
     server.bind("GetRequest", &GetRequest);
     server.bind("Prepare", &Prepare);
     server.bind("Commit", &Commit);
+    server.bind("Reply", &Reply);
 }
 
 #endif

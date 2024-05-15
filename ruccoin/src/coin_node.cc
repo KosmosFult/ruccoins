@@ -8,8 +8,10 @@
 #include <iostream>
 #include <filesystem>
 #include <list>
+#include <chrono>
 #include "config.h"
 #include "utils.h"
+#include "../src/pbft/include/bft.h"
 
 using json = nlohmann::json;
 namespace fs = std::filesystem;
@@ -57,19 +59,23 @@ ruccoin::CoinNode::CoinNode() : inited_(false) {
 
 }
 
-void ruccoin::CoinNode::Init(uint32_t port) {
-    port_ = port;
-    worker_port_ = port + 1;
-    local_addr_ = "127.0.0.1:" + std::to_string(port);
+void ruccoin::CoinNode::Init(uint32_t id, const std::string& config_json_path) {
+    id_ = id;
+    std::fstream f(config_json_path);
     // Open config
-    std::fstream f(ruccoin::config_path);
     if (!f.is_open()) {
-        std::cerr << "Can not open file \"/home/flt/workspace/bitcoin/ruccoin/config.json\"" << std::endl;
+        std::cerr << "Can not open file \"" << config_json_path << "\"" << std::endl;
         return;
     }
+    json conf_json = json::parse(f);
+    local_addr_ = conf_json["node_addr"][id];
+
+    port_ = ParseAddr(local_addr_).second;
+    bft_node_port_ = port_+1000;
+    worker_port_ = port_ + 1;
+
 
     // 将其余节点的地址加入到地址表
-    json conf_json = json::parse(f);
     for (auto &addr: conf_json["node_addr"]) {
         if (addr != local_addr_)
             node_addr.push_back(addr);
@@ -77,8 +83,8 @@ void ruccoin::CoinNode::Init(uint32_t port) {
 
 
     // 初始化自己的私钥和地址
-    user_addr_ = conf_json[std::to_string(port)]["addr"];
-    priv_key_ = conf_json[std::to_string(port)]["priv_key"];
+    user_addr_ = conf_json[std::to_string(port_)]["addr"];
+    priv_key_ = conf_json[std::to_string(port_)]["priv_key"];
     std::cout << "[priv_key]: " << priv_key_.substr(0, 8) << "\n[addr]: " << user_addr_.substr(0, 8) << "\n"
               << std::endl;
 
@@ -126,7 +132,7 @@ bool ruccoin::CoinNode::AddTransx(const TX &transx) {
 
 
 bool ruccoin::CoinNode::TryPublishCond() {
-    return tx_pool_.size() >= 20;
+    return tx_pool_.size() >= 2;
 }
 
 bool ruccoin::CoinNode::Mining() {
@@ -162,15 +168,20 @@ std::string ruccoin::CoinNode::GetMerkle() {
 
 void ruccoin::CoinNode::PackBlock() {
     assert(TryPublishCond());
+    Block last_block;
+    if(!ReadBlock(block_chain_hash_.back(), last_block))
+        return;
     on_packing_block_.header = {
-            block_chain_.back().header.height + 1,
+            last_block.header.height + 1,
             ruccoin::target,
-            block_chain_.back().header.hash,
+            last_block.header.hash,
             GenRandom256(),
             GetMerkle(),
             "nonce"
     };
     on_packing_block_.transx_list = tx_pool_;
+
+#ifdef  PUBLISH_REWARD
     TX reward_tx = {
             GetTimestamp(),
             ruccoin::reward_src_addr,
@@ -182,6 +193,7 @@ void ruccoin::CoinNode::PackBlock() {
     reward_tx.signature = sign;
     assert(ValidateSignature(reward_tx));
     on_packing_block_.transx_list.push_back(reward_tx);
+#endif
 }
 
 bool ruccoin::CoinNode::CheckBalance(const std::string &from, double value) {
@@ -409,11 +421,34 @@ void ruccoin::CoinNode::Run(int argc, char** argv) {
         SleepSeconds(2);
         if (TryPublishCond()) {
             PackBlock();
+#ifdef  MINING_MODE
             send_flag = Mining();
             if(send_flag)
                 SendBlock();
+#endif
+            BlockProposal(on_packing_block_);
         }
     }
+}
+
+void ruccoin::CoinNode::BlockProposal(const Block &block) {
+    rpc::client cl("127.0.0.1", bft_node_port_);
+    json jblock(block);
+    std::string block_str = jblock.dump();
+    PBFT::Request r(id_, GetTimestamp(), block_str);
+    cl.call("GetRequest", r);
+
+}
+
+bool ruccoin::CoinNode::ReadBlock(const std::string &block_hash, Block& block) {
+    std::string fname = blockchain_dir_+ "/" + block_hash + ".json";
+    std::ifstream bc(fname);
+    if (!bc.is_open()) {
+        std::cerr << fname << " not exists\n" << std::endl;
+        return false;
+    }
+    block =  json::parse(bc).template get<Block>();
+    return true;
 }
 
 

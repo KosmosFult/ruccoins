@@ -9,6 +9,7 @@
 #include <fstream>
 #include <chrono>
 #include <nlohmann/json.hpp>
+#include <rpc/rpc_error.h>
 
 using json = nlohmann::json;
 
@@ -42,12 +43,12 @@ bool ruccoin::client::Signate(TX &transx) {
     return true;
 }
 
-ruccoin::client::client() {
+ruccoin::client::client(const std::string &config_json_path) : config_json_path_(config_json_path) {
 
     // 解析配置文件
-    std::fstream conf(ruccoin::config_path);
+    std::fstream conf(config_json_path);
     if (!conf.is_open()) {
-        std::cerr << "Can not open: \"" << config_path << "\"" << std::endl;
+        std::cerr << "Can not open: \"" << config_json_path << "\"" << std::endl;
     }
     json conf_json = json::parse(conf);
     nodes_addr_ = conf_json["node_addr"];
@@ -70,17 +71,28 @@ ruccoin::client::~client() {
 
 void ruccoin::client::SendTransx(const TX &transx) {
     assert(!transx.signature.empty());
-    ConnectAllNodes();
-    for (auto &node: coin_nodes_) {
-        node->call("AddTransx", transx);
+
+//    ConnectAllNodes();
+
+
+    for (auto &node: nodes_addr_) {
+        try {
+            auto [addr, port] = ParseAddr(node);
+            auto cl = new rpc::client(addr, port);
+            coin_nodes_.push_back(cl);
+            cl->call("AddTransx", transx);
+        } catch (std::exception &e) {
+            std::cerr << "call error" << std::endl;
+        }
     }
     CloseAllNodes();
 }
 
+
 std::string ruccoin::client::GetPrivateKey(const std::string &addr) {
     std::string priv_key;
     auto status = addr2priv_->Get(leveldb::ReadOptions(), addr, &priv_key);
-    if(!status.ok())
+    if (!status.ok())
         return "";
     return priv_key;
 }
@@ -105,22 +117,22 @@ void ruccoin::client::GenUser(int n) {
         return;
     }
 
-    std::fstream conf(ruccoin::config_path);
+    std::fstream conf(config_json_path_);
     if (!conf.is_open()) {
         std::cerr << "Can not open: \"" << config_path << "\"" << std::endl;
     }
 
 
     std::string priv_key, user_addr;
-    // 将两个固定的特殊节点地址添加进去
+    // 将配置文件中有的节点地址添加
     json conf_json = json::parse(conf);
-    for(auto& addr : nodes_addr_){
+    for (auto &addr: nodes_addr_) {
         auto addr_pair = ParseAddr(addr);
         auto port_str = std::to_string(addr_pair.second);
         std::string priv_key = conf_json[port_str]["priv_key"];
         std::string user_addr = conf_json[port_str]["addr"];
 
-        addr2priv_->Put(leveldb::WriteOptions(), user_addr , priv_key);
+        addr2priv_->Put(leveldb::WriteOptions(), user_addr, priv_key);
         std::string line = priv_key + "," + user_addr + "," + std::to_string(300);
         key_file << line << std::endl;
     }
@@ -128,13 +140,13 @@ void ruccoin::client::GenUser(int n) {
     // 将奖励源添加
     priv_key = conf_json["reward_user"]["priv_key"];
     user_addr = conf_json["reward_user"]["addr"];
-    addr2priv_->Put(leveldb::WriteOptions(), user_addr , priv_key);
+    addr2priv_->Put(leveldb::WriteOptions(), user_addr, priv_key);
     std::string line = priv_key + "," + user_addr + "," + "888888888";
     key_file << line << std::endl;
 
     for (int i = 0; i < n; i++) {
         auto key_pair = GenAddr();
-        addr2priv_->Put(leveldb::WriteOptions(), key_pair.second , key_pair.first);
+        addr2priv_->Put(leveldb::WriteOptions(), key_pair.second, key_pair.first);
         std::string line = key_pair.first + "," + key_pair.second + "," + std::to_string(300);
         key_file << line << std::endl;
     }
@@ -148,12 +160,13 @@ void ruccoin::client::Run() {
     std::string input;
     while (true) {
         std::cout << "~:";
+        std::cout.flush();
         std::getline(std::cin, input);
         if (input == "quit") {
             break;
         }
 
-        if (input == "gen"){
+        if (input == "gen") {
             GenUser(20);
             continue;
         }
@@ -162,31 +175,31 @@ void ruccoin::client::Run() {
         double value;
         std::istringstream iss(input);
         if (!(iss >> from >> to >> value)) {
-            std::cerr << "Invalid input format!" << std::endl;
+            std::cerr << "Invalid input format!" << std::endl << std::flush;
             continue;
         }
 
         std::string priv_key = GetPrivateKey(from);
-        if(priv_key.empty()){
-            std::cerr << "No user address: " << from << std::endl;
+        if (priv_key.empty()) {
+            std::cerr << "No user address: " << from << std::endl << std::flush;
             continue;
         }
         TX transx = {
-            GetTimestamp(),
-            from,
-            to,
-            value,
-            ""
+                GetTimestamp(),
+                from,
+                to,
+                value,
+                ""
         };
         Signate(transx);
         SendTransx(transx);
-        std::cout << "Transx send!" << std::endl;
+//        std::cout << "Transx send!" << std::endl;
     }
 
 }
 
 void ruccoin::client::CloseAllNodes() {
-    for(auto& node : coin_nodes_)
+    for (auto &node: coin_nodes_)
         delete node;
     coin_nodes_.clear();
 }

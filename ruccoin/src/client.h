@@ -16,7 +16,7 @@ namespace ruccoin {
 
     class client{
     public:
-        client();
+        client(const std::string& config_path);
         ~client();
 
         /**
@@ -34,6 +34,7 @@ namespace ruccoin {
         std::vector<rpc::client*> coin_nodes_;   // 所有coin_node的rpc链接
         std::string dbname_;
         std::string init_file_name_;              // 初始化文件路径
+        std::string config_json_path_;
         leveldb::DB* addr2priv_;                  // 地址到私钥的映射
 
         /**

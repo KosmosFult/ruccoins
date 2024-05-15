@@ -83,11 +83,11 @@ int main() {
     std::cout << GetTimestamp() << std::endl;
 
     std::ifstream bc("/home/flt/workspace/bitcoin/ruccoin/BlockChain.json");
-    json bc_josn = json::parse(bc);
+    json bc_json = json::parse(bc);
 
     std::vector<Block> blockchain;
 
-    for(const auto& block: bc_josn){
+    for(const auto& block: bc_json){
         // Parse block header
         BlockHeader header;
         header.height = block["header"]["height"];

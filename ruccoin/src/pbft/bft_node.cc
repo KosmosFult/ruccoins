@@ -159,6 +159,9 @@ namespace PBFT {
                 case PBFT_MType::Prepare:
                     futures.push_back(cl->async_call("Commit", m));
                     break;
+                case PBFT_MType::Commit:
+                    futures.push_back(cl->async_call("Reply", m));
+                    break;
                 default:
                     break;
             }
@@ -171,8 +174,6 @@ namespace PBFT {
 //                    f.get();
             }
         }
-
-        console_logger_->info("exit send message");
 
     }
 
@@ -192,7 +193,7 @@ namespace PBFT {
         if (!CheckProposal(proposals_[m.seq]))
             return;
 
-        console_logger_->info("(Prepare), seq:{}, m:{}", m.seq, m.body);
+        console_logger_->info("(Prepare), seq:{}, from:{}", m.seq, m.replica_id);
 
         Message sm(PBFT_MType::Prepare, id_, m.client_id, m.time_stamp, pub_key, m.seq, 0, Message::GetDigest(m.body));
         Message::Signate(sm, priv_key);
@@ -212,21 +213,85 @@ namespace PBFT {
             proposals_.insert(std::make_pair(m.seq, p));
         }
 
+        console_logger_->info("prepare(seq:{}, id:{})", m.seq, m.replica_id);
+
         auto &p = proposals_[m.seq];
         p->UpdateInfo(m);
         if (p->CheckVotes(m.mtype)) {
-            p->prepared = true;
+            if (!p->prepared) {
+                p->prepared = true;
+                return;
+            }
             console_logger_->info("Commit seq:{}", m.seq);
+            Message sm(PBFT_MType::Commit, id_, m.client_id, m.time_stamp, pub_key, m.seq, 0, Message::GetDigest(m.body));
+            Message::Signate(sm, priv_key);
+            assert(Message::CheckSignature(sm));
+            SendMessage(sm);
         }
     }
 
+    void PBFTHandler::Reply(const Message &m) {
+        if (!Message::CheckSignature(m))
+            return;
+        if (!CheckSeqNumber(m))
+            return;
+
+        if (proposals_.find(m.seq) == proposals_.end()) {
+            auto p = std::make_shared<Proposal>(m.time_stamp, m.client_id, m.seq, m.body, f_);
+            proposals_.insert(std::make_pair(m.seq, p));
+        }
+
+        console_logger_->info("commit(seq:{}, id:{})", m.seq, m.replica_id);
+
+
+        auto &p = proposals_[m.seq];
+        p->UpdateInfo(m);
+
+        if (p->CheckVotes(m.mtype)) {
+            if (!p->committed) {
+                p->committed = true;
+                return;
+            }
+            console_logger_->info("Reply seq:{}", m.seq);
+        }
+    }
 
     bool PBFTHandler::CheckProposal(const std::shared_ptr<Proposal> &p) {
+        try{
+            rpc::client cl(master_name_.first, master_name_.second);
+            bool valid = cl.call(check_proposal_call_name_, p->body).as<bool>();
+            return valid;
+        }catch (rpc::rpc_error &e) {
+            std::cout << std::endl << e.what() << std::endl;
+            std::cout << "in function '" << e.get_function_name() << "': ";
+
+            using err_t = std::tuple<int, std::string>;
+            auto err = e.get_error().as<err_t>();
+            std::cout << "[error " << std::get<0>(err) << "]: " << std::get<1>(err)
+                      << std::endl;
+        }
+
         return true;
     }
 
     bool PBFTHandler::CheckSeqNumber(const Message &m) {
         return true;
+    }
+
+    void PBFTHandler::CommitAction(std::string &m) {
+        try{
+            rpc::client cl(master_name_.first, master_name_.second);
+            cl.call(commit_proposal_call_name_, m);
+        }catch (rpc::rpc_error &e) {
+            std::cout << std::endl << e.what() << std::endl;
+            std::cout << "in function '" << e.get_function_name() << "': ";
+
+            using err_t = std::tuple<int, std::string>;
+            auto err = e.get_error().as<err_t>();
+            std::cout << "[error " << std::get<0>(err) << "]: " << std::get<1>(err)
+                      << std::endl;
+        }
+
     }
 
 

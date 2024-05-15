@@ -9,6 +9,7 @@
 #include <rpc/client.h>
 #include "../singleton.h"
 #include <memory>
+#include "./include/bft.h"
 #include "spdlog/spdlog.h"
 #include "spdlog/pattern_formatter.h"
 #include "spdlog/sinks/stdout_color_sinks.h"
@@ -45,21 +46,6 @@ namespace PBFT {
         std::string pub_key;
     };
 
-    class Request {
-    public:
-        uint32_t client_id;
-        uint64_t time_stamp;
-        std::string body;
-
-        Request() {}
-
-        Request(uint64_t client_id, uint64_t time_stamp, std::string body) : client_id(client_id),
-                                                                             time_stamp(time_stamp),
-                                                                             body(std::move(body)) {
-        }
-
-        MSGPACK_DEFINE_ARRAY(client_id, time_stamp, body);
-    };
 
     class Message {
     public:
@@ -94,7 +80,7 @@ namespace PBFT {
         Message(PBFT_MType msg_type, uint32_t replica_id, uint32_t client_id, uint64_t time_stamp, std::string pub_key,
                 uint64_t seq, uint32_t view_id, std::string digest, std::string body = "");
 
-        MSGPACK_DEFINE_ARRAY(mtype, replica_id, pub_key, seq, view_id, digest, signature, body);
+        MSGPACK_DEFINE_ARRAY(mtype, replica_id, client_id, time_stamp, pub_key, seq, view_id, digest, signature, body);
     };
 
     class Proposal {
@@ -126,9 +112,9 @@ namespace PBFT {
 
         PBFTHandler &operator=(const PBFTHandler &) = delete;
 
-        PBFTHandler() : inited_(false), check_proposal_call_name_("CheckProposal") {}
+        PBFTHandler() : inited_(false), check_proposal_call_name_("CheckProposal"), commit_proposal_call_name_("CommitProposal") {}
 
-        void Init(uint32_t id, const std::string &config_path);
+        void Init(uint32_t id, const std::string &config_json_path);
 
 
         /**
@@ -157,6 +143,8 @@ namespace PBFT {
          */
         void Commit(const Message& m);
 
+        void Reply(const Message& m);
+
         uint32_t GetPort() { return nodes_[id_].port; }
 
     private:
@@ -165,6 +153,7 @@ namespace PBFT {
         // master ralated
         std::pair<std::string, uint32_t> master_name_;   // 使用该pbft的主节点，主要用于检查proposal
         std::string check_proposal_call_name_;            // master中实现检查proposal的rpc调用函数名，默认为 "CheckProposal"
+        std::string commit_proposal_call_name_;           // master中实现检查proposal的rpc调用函数名，默认为 "CommitProposal"
 
         uint32_t id_;  // 标识PBFT节点，这里定为master port - 8090
         uint32_t current_primary_;
@@ -187,9 +176,15 @@ namespace PBFT {
          * @param p 需要检查的proposal
          * @return
          */
-        static bool CheckProposal(const std::shared_ptr<Proposal>& p);
+        bool CheckProposal(const std::shared_ptr<Proposal>& p);
 
         bool CheckSeqNumber(const Message &m);
+
+        /**
+         * @brief 具体的提交操作，master需要实现 `commit_proposal_call_name_` 的rpc调用
+         * @param m
+         */
+        void CommitAction(std::string& m);
 
 
     };

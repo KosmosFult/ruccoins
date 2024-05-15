@@ -27,9 +27,9 @@ namespace ruccoin {
 
         /**
          * @brief 初始化, 包括打开余额数据库, 建立到worker node的rpc连接等
-         * @param dbname
+         * @param
          */
-        void Init(uint32_t prot);
+        void Init(uint32_t id, const std::string& config_json_path);
 
 
         /**
@@ -81,6 +81,9 @@ namespace ruccoin {
         void MiningEnd();
 
 
+        uint32_t GetPort() const{return port_;};
+
+
 
         void Run(int argc, char** argv);
 
@@ -89,8 +92,10 @@ namespace ruccoin {
         std::string local_addr_;    // 节点自己的地址
         std::string user_addr_;    // 账户地址
         std::string priv_key_;     // 账户私钥
+        uint32_t id_;
         uint32_t port_;
         uint32_t worker_port_;
+        uint32_t bft_node_port_;
         bool inited_;                // 是否已初始化
         std::string dbname_;  // 用户余额数据库目录
         std::string blockchain_dir_; // 存区块链的目录
@@ -132,6 +137,8 @@ namespace ruccoin {
 
         bool CheckBlock(Block& block);
 
+        void BlockProposal(const Block& block);
+
 
 
 
@@ -150,6 +157,7 @@ namespace ruccoin {
 
         void ReadBlockChain();
         void ReadBlockChainHash(const std::string& genesis_block_hash);
+        bool ReadBlock(const std::string& block_hash, Block& block);
 
         void WriteBlockChain();
 

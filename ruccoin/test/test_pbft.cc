@@ -4,7 +4,7 @@
 
 #include <rpc/client.h>
 #include <unistd.h>
-#include "../src/pbft/bft_node.h"
+#include "../src/pbft/include/bft.h"
 int main(){
     rpc::client cl("127.0.0.1", 19090);
     PBFT::Request r(1, 8942894, "I have a request!");

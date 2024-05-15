@@ -9,6 +9,7 @@ void BindAll(rpc::server& server){
     server.bind("AddTransx", &AddTransx);
     server.bind("MiningEnd", &MiningEnd);
     server.bind("AddBlock", &AddBlock);
+    server.bind("CheckProposal", &CheckProposal);
 }
 
 bool AddTransx(TX& transx){
@@ -25,3 +26,6 @@ bool MiningEnd(){
     return true;
 }
 
+bool CheckProposal(std::string p){
+    return true;
+}

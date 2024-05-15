@@ -4,7 +4,7 @@
 #include "bft_node.h"
 #include "bft_rpc.h"
 #include "../cxxopts.h"
-#include "bft_rpc.h"
+
 int main(int argc, char *argv[]) {
     cxxopts::Options commandline_options("PBFT node", "For testing");
     uint32_t id;

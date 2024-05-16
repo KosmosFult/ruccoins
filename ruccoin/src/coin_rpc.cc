@@ -11,6 +11,7 @@ void BindAll(rpc::server& server){
     server.bind("MiningEnd", &MiningEnd);
     server.bind("AddBlock", &AddBlock);
     server.bind("CheckProposal", &CheckProposal);
+    server.bind("CommitProposal", &CommitProposal);
 }
 
 bool AddTransx(TX& transx){
@@ -28,6 +29,12 @@ bool MiningEnd(){
 }
 
 bool CheckProposal(std::string p){
-    std::cout << "check" <<std::endl;
     return true;
+}
+
+
+void CommitProposal(std::string p){
+    auto& coin_node = ruccoin::CoinNode::getInstance();
+    coin_node.CommitProposal(p);
+    return;
 }

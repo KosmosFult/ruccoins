@@ -85,8 +85,6 @@ void ruccoin::CoinNode::Init(uint32_t id, const std::string& config_json_path) {
     // 初始化自己的私钥和地址
     user_addr_ = conf_json[std::to_string(port_)]["addr"];
     priv_key_ = conf_json[std::to_string(port_)]["priv_key"];
-    std::cout << "[priv_key]: " << priv_key_.substr(0, 8) << "\n[addr]: " << user_addr_.substr(0, 8) << "\n"
-              << std::endl;
 
     std::string env_path = conf_json["test_env_path"];
 
@@ -120,7 +118,7 @@ bool ruccoin::CoinNode::AddTransx(const TX &transx) {
 
     if (!CheckSignature(transx))
         return false;
-    tx_pool_.push_back(transx);
+    tx_pool_.insert(transx);
 
 #ifdef  LOGTX
     std::cout << "Get transx\n" << "[From]: " + transx.from.substr(0, 8) + "\n"
@@ -144,7 +142,7 @@ bool ruccoin::CoinNode::Mining() {
     on_packing_block_.header.hash = header_hash;
     std::cout << "Mining complete!" << std::endl;
 
-    tx_pool_.erase(tx_pool_.begin(), tx_pool_.begin() + (on_packing_block_.transx_list.size()) - 1);
+    RemoveTxFromPool(on_packing_block_.transx_list);
 
 
     // 说明未接受新的区块
@@ -167,6 +165,7 @@ std::string ruccoin::CoinNode::GetMerkle() {
 }
 
 void ruccoin::CoinNode::PackBlock() {
+    std::lock_guard<std::mutex> lock(pool_mutex_);
     assert(TryPublishCond());
     Block last_block;
     if(!ReadBlock(block_chain_hash_.back(), last_block))
@@ -179,7 +178,15 @@ void ruccoin::CoinNode::PackBlock() {
             GetMerkle(),
             "nonce"
     };
-    on_packing_block_.transx_list = tx_pool_;
+
+    on_packing_block_.transx_list.clear();
+    int ntx = 0;
+    for(auto &tx : tx_pool_){
+        if(ntx > max_tx_per_block)
+            break;
+        on_packing_block_.transx_list.push_back(tx);
+        ntx++;
+    }
 
 #ifdef  PUBLISH_REWARD
     TX reward_tx = {
@@ -194,6 +201,7 @@ void ruccoin::CoinNode::PackBlock() {
     assert(ValidateSignature(reward_tx));
     on_packing_block_.transx_list.push_back(reward_tx);
 #endif
+    on_packing_block_.header.hash = HeaderHash(on_packing_block_.header);
 }
 
 bool ruccoin::CoinNode::CheckBalance(const std::string &from, double value) {
@@ -321,7 +329,7 @@ void ruccoin::CoinNode::WriteBlockChain() {
 
 void ruccoin::CoinNode::WriteBlock(const Block& block) {
     json jblock(block);
-    std::ofstream json_file(block.header.hash + ".json");
+    std::ofstream json_file(blockchain_dir_ + "/" + block.header.hash + ".json");
     json_file << std::setw(2) << jblock << std::endl;
     json_file.close();
 }
@@ -449,6 +457,23 @@ bool ruccoin::CoinNode::ReadBlock(const std::string &block_hash, Block& block) {
     }
     block =  json::parse(bc).template get<Block>();
     return true;
+}
+
+void ruccoin::CoinNode::CommitProposal(const std::string &p) {
+    Block block = json::parse(p).template get<Block>();
+    UpdateBlance(block.transx_list);
+    block_chain_hash_.push_back(block.header.hash);
+    RemoveTxFromPool(block.transx_list);
+    WriteBlock(block);
+}
+
+void ruccoin::CoinNode::RemoveTxFromPool(const TXL &tx_list) {
+    std::lock_guard<std::mutex> lock(pool_mutex_);
+    for(auto& tx:tx_list){
+        auto it = tx_pool_.find(tx);
+        if(it != tx_pool_.end())
+            tx_pool_.erase(it);
+    }
 }
 
 

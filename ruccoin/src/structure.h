@@ -17,10 +17,15 @@ struct TX{
     double value = 0.0;
     std::string signature;
 
+    bool operator<(const TX& rhs) const {
+        return time_stamp < rhs.time_stamp ||
+               (time_stamp == rhs.time_stamp && from < rhs.from);
+    }
     MSGPACK_DEFINE_ARRAY(time_stamp, from, to, value, signature);
 };
 
 using TXL = std::vector<TX>;
+using TXP = std::set<TX>;
 
 struct BlockHeader {
     uint64_t height;

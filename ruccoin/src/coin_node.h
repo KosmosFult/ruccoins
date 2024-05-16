@@ -11,6 +11,8 @@
 #include <leveldb/db.h>
 #include <vector>
 #include <rpc/client.h>
+#include <mutex>
+
 
 
 namespace ruccoin {
@@ -42,7 +44,7 @@ namespace ruccoin {
         /**
          * @brief 将当前交易池进行打包, 注意会预执行一遍交易，如果存在执行过程中余额不足，则删除该交易
          * 1. 顺序预执行交易，若出现余额不足，则丢弃该交易
-         * 2. 当执行的交易到达指定数量时，打包区块，并更新状态数据库
+         * 2. 当执行的交易到达指定数量时，打包区块
          */
         void PackBlock();
 
@@ -66,11 +68,19 @@ namespace ruccoin {
         bool SendBlock();
 
         /**
-         * @brief 接收其它节点发来的区块，验证合法性，合法就加入区块链
+         * @brief 接收其它节点发来的区块，验证合法性，合法就加入区块链，MINNING_MODE使用
          * @param block
          * @return
          */
         bool ReceiveBlock(Block& block);
+
+
+        /**
+         * @brief 用于使用PBFT共识机制。将p反序列化成Block，顺序执行交易，并将相同的交易从tx_pool中删除
+         * @param p 提案
+         * @return
+         */
+        void CommitProposal(const std::string& p);
 
 
 
@@ -100,7 +110,8 @@ namespace ruccoin {
         std::string dbname_;  // 用户余额数据库目录
         std::string blockchain_dir_; // 存区块链的目录
         leveldb::DB *balances_;     // 余额数据库
-        TXL tx_pool_;   // 交易池
+        TXP tx_pool_;   // 交易池
+        std::mutex pool_mutex_;
         rpc::client *worker_;       // worker node的rpc连接
         std::vector<std::string> node_addr;  // 其余比特币节点的地址
 //        Block current_block_;      // 区块链上最新区块
@@ -134,6 +145,11 @@ namespace ruccoin {
          */
         static bool CheckSignature(const TX &transx);
 
+        /**
+         * @brief 从交易池中移出指定交易
+         * @param tx_list
+         */
+        void RemoveTxFromPool(const TXL& tx_list);
 
         bool CheckBlock(Block& block);
 

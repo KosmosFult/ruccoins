@@ -248,11 +248,12 @@ namespace PBFT {
         p->UpdateInfo(m);
 
         if (p->CheckVotes(m.mtype)) {
-            if (!p->committed) {
+            if (!p->committed && !p->body.empty()) {
+                console_logger_->info("Reply seq:{}", m.seq);
+                CommitAction(p->body);
                 p->committed = true;
                 return;
             }
-            console_logger_->info("Reply seq:{}", m.seq);
         }
     }
 

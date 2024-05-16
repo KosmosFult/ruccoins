@@ -70,8 +70,10 @@ void ruccoin::CoinNode::Init(uint32_t id, const std::string& config_json_path) {
     json conf_json = json::parse(f);
     local_addr_ = conf_json["node_addr"][id];
 
+
     port_ = ParseAddr(local_addr_).second;
     bft_node_port_ = port_+1000;
+    bft_primary_id_ = conf_json["pbft_primary"];
     worker_port_ = port_ + 1;
 
 
@@ -427,7 +429,7 @@ void ruccoin::CoinNode::Run(int argc, char** argv) {
     bool send_flag = false;
     while(true){
         SleepSeconds(2);
-        if (TryPublishCond()) {
+        if (TryPublishCond() && (id_ == bft_primary_id_)) {
             PackBlock();
 #ifdef  MINING_MODE
             send_flag = Mining();

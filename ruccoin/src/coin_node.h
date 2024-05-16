@@ -106,6 +106,7 @@ namespace ruccoin {
         uint32_t port_;
         uint32_t worker_port_;
         uint32_t bft_node_port_;
+        uint32_t bft_primary_id_;
         bool inited_;                // 是否已初始化
         std::string dbname_;  // 用户余额数据库目录
         std::string blockchain_dir_; // 存区块链的目录

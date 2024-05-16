@@ -13,6 +13,7 @@
 #include "spdlog/spdlog.h"
 #include "spdlog/pattern_formatter.h"
 #include "spdlog/sinks/stdout_color_sinks.h"
+#include <mutex>
 //#include "../structure.h"
 
 enum class PBFT_MType {
@@ -93,6 +94,7 @@ namespace PBFT {
         uint32_t f;
         bool prepared;
         bool committed;
+        std::mutex ins_mutex_;
         // key为digest，value是投票。因为可能消息被篡改，因此需要通过digest区别投票
 //        std::map<std::string, std::string> message;  // digest到原始message
         std::map<std::string, std::vector<uint32_t>> prepare_votes;
@@ -161,7 +163,9 @@ namespace PBFT {
         std::string pub_key;
         uint32_t f_;   // 容错F
         uint64_t next_proposal_seq_;   // 下一个提案的序列号
+        std::mutex seq_lock_;
         std::map<uint64_t, std::shared_ptr<Proposal>> proposals_;
+        std::mutex proposals_mutex;
         std::map<uint32_t, NodeMeta> nodes_;
 
         std::shared_ptr<spdlog::logger> console_logger_;

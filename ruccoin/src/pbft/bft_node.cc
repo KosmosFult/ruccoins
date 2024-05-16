@@ -69,14 +69,18 @@ namespace PBFT {
 
     void PBFTHandler::GetRequest(const Request &req) {
 //        assert(current_primary_ == id_);
+        if(current_primary_ != id_){
+            error_logger_->info("publica receive request");
+        }
         Preprepare(req);
 //        std::cout << req.body << std::endl;
     }
 
     void PBFTHandler::Preprepare(const Request &req) {
+        seq_lock_.lock();
         uint64_t current_seq = next_proposal_seq_++;
-
-        console_logger_->info("Preprepare seq: {}", current_seq);
+        seq_lock_.unlock();
+        console_logger_->info("Request seq: {}", current_seq);
 
         if (proposals_.find(current_seq) == proposals_.end()) {
             auto p = std::make_shared<Proposal>(req.time_stamp, req.client_id, current_seq, req.body, f_);
@@ -103,6 +107,7 @@ namespace PBFT {
         }
 
         json conf_json = json::parse(f);
+        current_primary_ = conf_json["pbft_primary"];
 
         uint32_t index = 0;
         for (auto &node_addr: conf_json["node_addr"]) {
@@ -185,15 +190,25 @@ namespace PBFT {
         if (!CheckSeqNumber(m))
             return;
 
-        if (proposals_.find(m.seq) == proposals_.end()) {
+        proposals_mutex.lock();
+        auto p_itr = proposals_.find(m.seq);
+        if (p_itr == proposals_.end()) {
             auto p = std::make_shared<Proposal>(m.time_stamp, m.client_id, m.seq, m.body, f_);
             proposals_.insert(std::make_pair(m.seq, p));
+        } else{
+            // 因为不保证各阶段消息顺序，因此可能先收到prepare或commit消息，但只有pre-prepare的消息才会带原始的m，这里判断如果提案
+            // 的body为空，则添加body
+            p_itr->second->ins_mutex_.lock();
+            if(p_itr->second->body.empty())
+                p_itr->second->body = m.body;
+            p_itr->second->ins_mutex_.unlock();
         }
+        proposals_mutex.unlock();
 
         if (!CheckProposal(proposals_[m.seq]))
             return;
 
-        console_logger_->info("(Prepare), seq:{}, from:{}", m.seq, m.replica_id);
+        console_logger_->info("preprepare(seq:{}, from:{})", m.seq, m.replica_id);
 
         Message sm(PBFT_MType::Prepare, id_, m.client_id, m.time_stamp, pub_key, m.seq, 0, Message::GetDigest(m.body));
         Message::Signate(sm, priv_key);
@@ -218,11 +233,11 @@ namespace PBFT {
         auto &p = proposals_[m.seq];
         p->UpdateInfo(m);
         if (p->CheckVotes(m.mtype)) {
+            std::lock_guard<std::mutex> lock(p->ins_mutex_);
             if (!p->prepared) {
                 p->prepared = true;
                 return;
             }
-            console_logger_->info("Commit seq:{}", m.seq);
             Message sm(PBFT_MType::Commit, id_, m.client_id, m.time_stamp, pub_key, m.seq, 0, Message::GetDigest(m.body));
             Message::Signate(sm, priv_key);
             assert(Message::CheckSignature(sm));
@@ -248,6 +263,7 @@ namespace PBFT {
         p->UpdateInfo(m);
 
         if (p->CheckVotes(m.mtype)) {
+            std::lock_guard<std::mutex> lock(p->ins_mutex_);
             if (!p->committed && !p->body.empty()) {
                 console_logger_->info("Reply seq:{}", m.seq);
                 CommitAction(p->body);

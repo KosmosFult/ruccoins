@@ -348,13 +348,31 @@ bool ruccoin::CoinNode::SendBlock() {
 }
 
 bool ruccoin::CoinNode::CheckBlock(Block &block) {
-    if (block.header.prev_hash != block_chain_.back().header.hash) {
+    if (block.header.prev_hash != block_chain_hash_.back()) {
         return false;
     }
 
+    std::unordered_map<std::string, double> temp_balance;
     for(auto& tx: block.transx_list){
-        if(!CheckSignature(tx) || !CheckBalance(tx.from, tx.value))
+        if(!CheckSignature(tx))
             return false;
+        std::string balance;
+        double value;
+        auto bitr = temp_balance.find(tx.from);
+        if(bitr == temp_balance.end()) {
+            auto status = balances_->Get(leveldb::ReadOptions(), tx.from, &balance);
+            if(status.IsNotFound())
+                return false;
+            value = std::stod(balance);
+
+            if(value < tx.value)
+                return false;
+            temp_balance.insert(std::make_pair(tx.from, value-tx.value));
+        }else{
+            if(bitr->second < tx.value)
+                return false;
+            bitr->second -= tx.value;
+        }
     }
     return true;
 }
@@ -477,6 +495,11 @@ void ruccoin::CoinNode::RemoveTxFromPool(const TXL &tx_list) {
         if(it != tx_pool_.end())
             tx_pool_.erase(it);
     }
+}
+
+bool ruccoin::CoinNode::CheckProposal(const std::string &p) {
+    Block block = json::parse(p).template get<Block>();
+    return CheckBlock(block);
 }
 
 

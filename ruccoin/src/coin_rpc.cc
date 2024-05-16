@@ -29,7 +29,8 @@ bool MiningEnd(){
 }
 
 bool CheckProposal(std::string p){
-    return true;
+    auto& coin_node = ruccoin::CoinNode::getInstance();
+    return coin_node.CheckProposal(p);
 }
 
 

@@ -63,6 +63,8 @@ namespace PBFT {
 
         static int ToInt(PBFT_MType type);
 
+        static std::string MTypeStr(PBFT_MType mtype);
+
         static std::string GetDigest(const std::string &data);
 
 
@@ -95,6 +97,7 @@ namespace PBFT {
         bool prepared;
         bool committed;
         std::mutex ins_mutex_;
+        std::condition_variable committed_cv;
         // key为digest，value是投票。因为可能消息被篡改，因此需要通过digest区别投票
 //        std::map<std::string, std::string> message;  // digest到原始message
         std::map<std::string, std::vector<uint32_t>> prepare_votes;
@@ -129,7 +132,7 @@ namespace PBFT {
          * @brief 仅由 GetRequest 调用，将pre-prepare消息广播给所有节点（rpc调用其它节点的prepare）
          * @param req
          */
-        void Preprepare(const Request &req);
+        uint64_t Preprepare(const Request &req);
 
         /**
          * @brief rpc 调用，检查是否赞成提案，若赞成，广播一个prepare消息（rpc调用其它节点的commit）

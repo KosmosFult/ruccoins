@@ -24,7 +24,7 @@ namespace ruccoin {
          * 先获取当前时间戳，再将(timestamp, from, to ,value)使用from的私钥进行签名，最后得到签名完成的TX
          * 再用SendTransx将交易发出去
          */
-        void Run();
+        void Run(int script_mode);
         void TestRun();
         void GenUser(int n);
 

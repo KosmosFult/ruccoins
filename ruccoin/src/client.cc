@@ -13,6 +13,8 @@
 
 using json = nlohmann::json;
 
+extern int script_mode;
+
 void ruccoin::client::ConnectNode(const std::string &addr, uint32_t port) {
     auto new_node = new rpc::client(addr, port);
     coin_nodes_.push_back(new_node);
@@ -155,12 +157,16 @@ void ruccoin::client::GenUser(int n) {
     key_file.close();
 }
 
-void ruccoin::client::Run() {
+void ruccoin::client::Run(int script_mode) {
 
     std::string input;
+
     while (true) {
-        std::cout << "~:";
-        std::cout.flush();
+        if (script_mode == 0) {
+            std::cout << "~:";
+            std::cout.flush();
+        }
+
         std::getline(std::cin, input);
         if (input == "quit") {
             break;
@@ -177,6 +183,10 @@ void ruccoin::client::Run() {
         if (!(iss >> from >> to >> value)) {
             std::cerr << "Invalid input format!" << std::endl << std::flush;
             continue;
+        }
+
+        if (script_mode == 1) {
+            std::cout << "-- " << from.substr(0, 8) << ", " << to.substr(0, 8) << std::endl;
         }
 
         std::string priv_key = GetPrivateKey(from);

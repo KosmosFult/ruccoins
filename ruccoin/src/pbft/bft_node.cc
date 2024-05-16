@@ -48,6 +48,7 @@ namespace PBFT {
     bool Proposal::CheckVotes(PBFT_MType mtype) {
 
         auto f_ = f;
+        std::lock_guard<std::mutex> lock(ins_mutex_);
         if (mtype == PBFT_MType::Prepare) {
             if (prepared)
                 return true;
@@ -69,14 +70,18 @@ namespace PBFT {
 
     void PBFTHandler::GetRequest(const Request &req) {
 //        assert(current_primary_ == id_);
-        if(current_primary_ != id_){
+        if (current_primary_ != id_) {
             error_logger_->info("publica receive request");
         }
-        Preprepare(req);
+        uint64_t current_seq = Preprepare(req);
+        auto& p = proposals_[current_seq];
+        std::unique_lock<std::mutex> lck(p->ins_mutex_);
+        p->committed_cv.wait(lck, [&] { return p->committed; });
 //        std::cout << req.body << std::endl;
+        console_logger_->info("Request seq:{}, completed", current_seq);
     }
 
-    void PBFTHandler::Preprepare(const Request &req) {
+    uint64_t PBFTHandler::Preprepare(const Request &req) {
         seq_lock_.lock();
         uint64_t current_seq = next_proposal_seq_++;
         seq_lock_.unlock();
@@ -92,6 +97,7 @@ namespace PBFT {
         Message::Signate(m, priv_key);
         assert(Message::CheckSignature(m));
         SendMessage(m);
+        return current_seq;
     }
 
     void PBFTHandler::Init(uint32_t id, const std::string &config_path) {
@@ -152,32 +158,48 @@ namespace PBFT {
     void PBFTHandler::SendMessage(const Message &m) {
         std::vector<std::shared_ptr<rpc::client>> connects;
         std::vector<std::future<clmdep_msgpack::object_handle>> futures;
-
+        int i = 0;
         for (auto &node: nodes_) {
-
-            auto cl = std::make_shared<rpc::client>(node.second.hostname, node.second.port);
-            connects.push_back(cl);
-            switch (m.mtype) {
-                case PBFT_MType::Preprepare:
-                    futures.push_back(cl->async_call("Prepare", m));
-                    break;
-                case PBFT_MType::Prepare:
-                    futures.push_back(cl->async_call("Commit", m));
-                    break;
-                case PBFT_MType::Commit:
-                    futures.push_back(cl->async_call("Reply", m));
-                    break;
-                default:
-                    break;
+            try {
+                auto cl = std::make_shared<rpc::client>(node.second.hostname, node.second.port);
+                connects.push_back(cl);
+                switch (m.mtype) {
+                    case PBFT_MType::Preprepare:
+                        futures.push_back(cl->async_call("Prepare", m));
+                        break;
+                    case PBFT_MType::Prepare:
+                        futures.push_back(cl->async_call("Commit", m));
+                        break;
+                    case PBFT_MType::Commit:
+                        futures.push_back(cl->async_call("Reply", m));
+                        break;
+                    default:
+                        break;
+                }
+            }catch (std::system_error& e){
+                std::string mtype = Message::MTypeStr(m.mtype);
+                error_logger_->info("Send message error, seq:{}, mtype:{}, to:{}, \n\twhat():{}", m.seq, mtype,
+                                    nodes_[i].replica_id, e.what());
             }
+            i++;
         }
 
+        i = 0;
         for (auto &f: futures) {
-            if (f.wait_for(std::chrono::milliseconds(system_value::timeout)) == std::future_status::timeout) {
-                error_logger_->info("Send message time out");
-            } else {
+            try {
+                if (f.wait_for(std::chrono::milliseconds(0)) == std::future_status::timeout) {
+//                std::string mtype = Message::MTypeStr(m.mtype);
+//                error_logger_->info("Send message time out, seq:{}, mtype:{}, to:{}", m.seq, mtype,
+//                                    nodes_[i].replica_id);
+                } else {
 //                    f.get();
+                }
+            }catch (std::system_error& e){
+                std::string mtype = Message::MTypeStr(m.mtype);
+                error_logger_->info("Send message error, seq:{}, mtype:{}, to:{}, \n\twhat():{}", m.seq, mtype,
+                                    nodes_[i].replica_id, e.what());
             }
+            i++;
         }
 
     }
@@ -195,11 +217,11 @@ namespace PBFT {
         if (p_itr == proposals_.end()) {
             auto p = std::make_shared<Proposal>(m.time_stamp, m.client_id, m.seq, m.body, f_);
             proposals_.insert(std::make_pair(m.seq, p));
-        } else{
+        } else {
             // 因为不保证各阶段消息顺序，因此可能先收到prepare或commit消息，但只有pre-prepare的消息才会带原始的m，这里判断如果提案
             // 的body为空，则添加body
             p_itr->second->ins_mutex_.lock();
-            if(p_itr->second->body.empty())
+            if (p_itr->second->body.empty())
                 p_itr->second->body = m.body;
             p_itr->second->ins_mutex_.unlock();
         }
@@ -233,15 +255,18 @@ namespace PBFT {
         auto &p = proposals_[m.seq];
         p->UpdateInfo(m);
         if (p->CheckVotes(m.mtype)) {
-            std::lock_guard<std::mutex> lock(p->ins_mutex_);
-            if (!p->prepared) {
+            {
+                std::lock_guard<std::mutex> lock(p->ins_mutex_);
+                if (p->prepared)
+                    return;
                 p->prepared = true;
-                return;
             }
-            Message sm(PBFT_MType::Commit, id_, m.client_id, m.time_stamp, pub_key, m.seq, 0, Message::GetDigest(m.body));
+            Message sm(PBFT_MType::Commit, id_, m.client_id, m.time_stamp, pub_key, m.seq, 0,
+                       Message::GetDigest(m.body));
             Message::Signate(sm, priv_key);
             assert(Message::CheckSignature(sm));
             SendMessage(sm);
+
         }
     }
 
@@ -265,21 +290,22 @@ namespace PBFT {
         if (p->CheckVotes(m.mtype)) {
             std::lock_guard<std::mutex> lock(p->ins_mutex_);
             if (!p->committed && !p->body.empty()) {
-                console_logger_->info("Reply seq:{}", m.seq);
                 CommitAction(p->body);
+                console_logger_->info("Reply seq:{}", m.seq);
                 p->committed = true;
+                p->committed_cv.notify_one();
                 return;
             }
         }
     }
 
     bool PBFTHandler::CheckProposal(const std::shared_ptr<Proposal> &p) {
-        try{
+        try {
             rpc::client cl(master_name_.first, master_name_.second);
             std::string body = p->body;
             bool valid = cl.call(check_proposal_call_name_, p->body).as<bool>();
             return valid;
-        }catch (rpc::rpc_error &e) {
+        } catch (rpc::rpc_error &e) {
             std::cout << std::endl << e.what() << std::endl;
             std::cout << "in function '" << e.get_function_name() << "': ";
 
@@ -297,10 +323,10 @@ namespace PBFT {
     }
 
     void PBFTHandler::CommitAction(std::string &m) {
-        try{
+        try {
             rpc::client cl(master_name_.first, master_name_.second);
             cl.call(commit_proposal_call_name_, m);
-        }catch (rpc::rpc_error &e) {
+        } catch (rpc::rpc_error &e) {
             std::cout << std::endl << e.what() << std::endl;
             std::cout << "in function '" << e.get_function_name() << "': ";
 
@@ -400,6 +426,20 @@ namespace PBFT {
 
         EC_KEY_free(publicKey);
         return true;
+    }
+
+    std::string Message::MTypeStr(PBFT_MType mtype) {
+        switch (mtype) {
+            case PBFT_MType::Preprepare:
+                return "pre-prepare";
+            case PBFT_MType::Prepare:
+                return "prepare";
+            case PBFT_MType::Commit:
+                return "commit";
+            default:
+                return "unknown";
+        }
+        return "error";
     }
 
 }

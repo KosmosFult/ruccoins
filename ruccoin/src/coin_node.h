@@ -82,6 +82,12 @@ namespace ruccoin {
          */
         void CommitProposal(const std::string& p);
 
+        /**
+         * @brief 检查proposal
+         * @param p 此场景下p是Block json
+         */
+        bool CheckProposal(const std::string& p);
+
 
 
         /**

@@ -181,7 +181,7 @@ void ruccoin::client::Run(int script_mode) {
         double value;
         std::istringstream iss(input);
         if (!(iss >> from >> to >> value)) {
-            std::cerr << "Invalid input format!" << std::endl << std::flush;
+            std::cout << "Invalid input format!" << std::endl << std::flush;
             continue;
         }
 

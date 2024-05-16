@@ -26,7 +26,7 @@
     "addr":"0427b2899e02ddec870da2167e552e907b82016bf552896cac1ac4dc1b14b9c61068f1fe4dd8ada5527de20c1979535e1dacfba3be05782520ece8347d1919a067"
   },
   "pbft_primary": 0,
-  "min_tx_per_block": 5,
+  "min_tx_per_block": 10,
   "devil": 1,
   "client_db": "/home/flt/workspace/bitcoin/testenv2/clientDB",
   "user_init_file": "/home/flt/workspace/bitcoin/testenv2/user_init.txt",

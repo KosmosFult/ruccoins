@@ -77,6 +77,7 @@ namespace PBFT {
         auto& p = proposals_[current_seq];
         std::unique_lock<std::mutex> lck(p->ins_mutex_);
         p->committed_cv.wait(lck, [&] { return p->committed; });
+        p->committed_cv.wait_for()
 //        std::cout << req.body << std::endl;
         console_logger_->info("Request seq:{}, completed", current_seq);
     }

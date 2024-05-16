@@ -119,6 +119,7 @@ namespace ruccoin {
         Block on_packing_block_;   // 正在打包的区块
         std::future<clmdep_msgpack::object_handle> future;  // 用于存储异步调用的对象
 
+        uint32_t min_tx_per_block_;
         // 以下方法用于将所有区块存到一个json，未来弃用
         std::string block_chain_json_;  // 存储block chain的json文件
         std::vector<Block> block_chain_;

@@ -75,6 +75,7 @@ void ruccoin::CoinNode::Init(uint32_t id, const std::string& config_json_path) {
     bft_node_port_ = port_+1000;
     bft_primary_id_ = conf_json["pbft_primary"];
     worker_port_ = port_ + 1;
+    min_tx_per_block_ = conf_json["min_tx_per_block"];
 
 
     // 将其余节点的地址加入到地址表
@@ -132,7 +133,7 @@ bool ruccoin::CoinNode::AddTransx(const TX &transx) {
 
 
 bool ruccoin::CoinNode::TryPublishCond() {
-    return tx_pool_.size() >= 2;
+    return tx_pool_.size() >= min_tx_per_block_;
 }
 
 bool ruccoin::CoinNode::Mining() {

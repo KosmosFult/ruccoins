@@ -8,6 +8,28 @@ include_directories(../thirdparty/rpclib/include)
 include_directories(../thirdparty/json/include)
 include_directories(../thirdparty/picosha2)
 
+option(LOGTX_SWITCH "print tx when receive" OFF)
+option(REWARD_SWITCH "Get reward when publish a block" OFF)
+option(MINING_MODE_SWITCH "use mining to reach consensus" OFF)
+
+if(LOGTX_SWITCH)
+    add_definitions(LOGTX)
+endif (LOGTX_SWITCH)
+
+if(REWARD_SWITCH)
+    add_definitions(PUBLISH_REWARD)
+endif (REWARD_SWITCH)
+
+
+if(MINING_MODE_SWITCH)
+    add_definitions(MINING_MODE)
+endif (MINING_MODE_SWITCH)
+
+if(NOT TARGET spdlog)
+    # Stand-alone build
+    find_package(spdlog REQUIRED)
+endif()
+
 # 查找OpenSSL库
 find_package(OpenSSL REQUIRED)
 
@@ -29,3 +51,9 @@ target_link_libraries(worker_node rpc ${OPENSSL_LIBRARIES})
 add_executable(test_prog ./src/test_prog.cc
         src/utils.cc)
 target_link_libraries(test_prog ${OPENSSL_LIBRARIES} nlohmann_json)
+
+add_executable(bft_main ./src/pbft/bft_node.cc ./src/pbft/bft_node.cc ./src/utils.cc ./src/pbft/bft_main.cc)
+target_link_libraries(bft_main rpc nlohmann_json ${OPENSSL_LIBRARIES} spdlog::spdlog)
+
+add_executable(test_pbft ./test/test_pbft.cc)
+target_link_libraries(test_pbft rpc spdlog::spdlog)

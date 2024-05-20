@@ -38,4 +38,9 @@ bool AddBlock(Block& block);
 bool MiningEnd();
 
 
+bool CheckProposal(std::string p);
+
+void CommitProposal(std::string p);
+
+
 #endif //SIMPLEBITCOIN_COIN_RPC_H

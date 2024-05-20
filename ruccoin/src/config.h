@@ -8,6 +8,7 @@
 #include <stdint.h>
 
 namespace ruccoin{
+    const int max_tx_per_block = 80;
     const uint32_t target = 2378178319;
     const std::string config_path = "/home/flt/workspace/bitcoin/ruccoin/config.json";
     const uint32_t reward_coin = 100;

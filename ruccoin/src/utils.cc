@@ -47,7 +47,7 @@ std::string GenRandom256() {
 }
 
 
-std::string RuccoinHash(std::string& data){
+std::string RuccoinHash(const std::string& data){
     std::string hash_hex_str;
     picosha2::hash256_hex_string(data, hash_hex_str);
     return hash_hex_str;

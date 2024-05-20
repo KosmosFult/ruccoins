@@ -8,35 +8,6 @@
 #include <fstream>
 using json = nlohmann::json;
 
-void to_json(json& j, const BlockHeader& header) {
-    j = json{
-            {"height", header.height},
-            {"target", header.target},
-            {"prev_hash", header.prev_hash},
-            {"hash", header.hash},
-            {"merkle_root", header.merkle_root},
-            {"nonce", header.nonce}
-    };
-}
-
-void to_json(json& j, const TX& tx) {
-    j = json{
-            {"time_stamp", tx.time_stamp},
-            {"from", tx.from},
-            {"to", tx.to},
-            {"value", tx.value},
-            {"signature", tx.signature}
-    };
-}
-
-
-// 将 Block 转换为 JSON 对象
-void to_json(json& j, const Block& block) {
-    j = json{
-            {"header", block.header},
-            {"transx_list", block.transx_list}
-    };
-}
 
 void appendBlockToJsonFile(const std::string& filename, const Block& new_block) {
     // Open file in append mode
@@ -112,11 +83,11 @@ int main() {
     std::cout << GetTimestamp() << std::endl;
 
     std::ifstream bc("/home/flt/workspace/bitcoin/ruccoin/BlockChain.json");
-    json bc_josn = json::parse(bc);
+    json bc_json = json::parse(bc);
 
     std::vector<Block> blockchain;
 
-    for(auto& block: bc_josn){
+    for(const auto& block: bc_json){
         // Parse block header
         BlockHeader header;
         header.height = block["header"]["height"];
@@ -143,6 +114,9 @@ int main() {
         cb.header = header;
         cb.transx_list = transx_list;
         blockchain.push_back(cb);
+
+        Block block_from_json = block.template get<Block>();
+
     }
 
     std::ofstream new_json("/home/flt/workspace/bitcoin/ruccoin/BlockChain2.json");
@@ -153,6 +127,8 @@ int main() {
     }
     new_json << std::setw(2) << jl << std::endl;
     new_json.close();
+
+
     return 0;
 
 }

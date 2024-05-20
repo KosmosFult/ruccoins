@@ -10,3 +10,6 @@
 [submodule "thirdparty/leveldb"]
 	path = thirdparty/leveldb
 	url = https://github.com/google/leveldb.git
+[submodule "thirdparty/spdlog"]
+	path = thirdparty/spdlog
+	url = https://github.com/gabime/spdlog.git

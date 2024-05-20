@@ -4,11 +4,14 @@
 
 #include "coin_rpc.h"
 #include "coin_node.h"
+#include <iostream>
 
 void BindAll(rpc::server& server){
     server.bind("AddTransx", &AddTransx);
     server.bind("MiningEnd", &MiningEnd);
     server.bind("AddBlock", &AddBlock);
+    server.bind("CheckProposal", &CheckProposal);
+    server.bind("CommitProposal", &CommitProposal);
 }
 
 bool AddTransx(TX& transx){
@@ -25,3 +28,14 @@ bool MiningEnd(){
     return true;
 }
 
+bool CheckProposal(std::string p){
+    auto& coin_node = ruccoin::CoinNode::getInstance();
+    return coin_node.CheckProposal(p);
+}
+
+
+void CommitProposal(std::string p){
+    auto& coin_node = ruccoin::CoinNode::getInstance();
+    coin_node.CommitProposal(p);
+    return;
+}

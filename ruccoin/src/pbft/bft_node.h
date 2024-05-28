@@ -22,6 +22,12 @@ enum class PBFT_MType {
     Commit
 };
 
+
+/**
+ * 当前Proposal的状态，由于是异步通信，因此实际状态一定是先pre_prepared->prepared->committed顺序，
+ * 而是是否已经达到该状态（例如先收到2f+1个commit消息，先达到commit状态，再收到2f+1个prepare消息）。
+ * 因此实际没有用到
+ */
 enum class PBFT_PStat {
     pre_prepared, prepared, committed
 };
@@ -31,7 +37,9 @@ MSGPACK_ADD_ENUM(PBFT_PStat);
 
 namespace PBFT {
 
-
+    /**
+     * 内部配置常量，目前没有用到
+     */
     namespace system_value {
         const uint32_t timeout = 8000;
     }
@@ -69,7 +77,7 @@ namespace PBFT {
 
 
         /**
-         * @brief 计算签名的数据
+         * @brief 计算签名的数据，并直接写到m
          * @param m
          * @param priv_key
          */
@@ -96,8 +104,10 @@ namespace PBFT {
         uint32_t f;
         bool prepared;
         bool committed;
+        
         std::mutex ins_mutex_;
         std::condition_variable committed_cv;
+
         // key为digest，value是投票。因为可能消息被篡改，因此需要通过digest区别投票
 //        std::map<std::string, std::string> message;  // digest到原始message
         std::map<std::string, std::vector<uint32_t>> prepare_votes;

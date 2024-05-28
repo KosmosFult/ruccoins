@@ -6,6 +6,10 @@
 #define SIMPLEBITCOIN_BFT_H
 
 namespace PBFT {
+
+    /**
+     * client通过rpc与PBFT节点通信，请求包的类型为 Request
+     */
     class Request {
     public:
         uint32_t client_id;
